@@ -130,8 +130,7 @@ def train(opt):
         model.train()
 
         if epoch == opt.num_epoch_unfreeze:
-            for param in model.classifier.parameters():
-                param.requires_grad = True
+            model.requires_grad = True
 
         running_loss = 0.0
         for batch_idx, (inputs, targets) in enumerate(train_loader):
