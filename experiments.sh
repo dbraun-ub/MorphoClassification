@@ -10,12 +10,13 @@ declare -a configs=(
 # Loop over each configuration
 for config in "${configs[@]}"
 do
-    clear
+    # clear
 
     # Extract log_name from config
     log_name=$(echo $config | cut -d ' ' -f 1)
 
     # Run Python script
+    echo python train.py --log_name $log_name --data_path /home/ubuntu/data/MORPHO_Batch1 ${config}
     python train.py --log_name $log_name --data_path /home/ubuntu/data/MORPHO_Batch1 ${config}
 
     # Zip and clean up
@@ -24,7 +25,7 @@ do
     rm -r $log_name
     cd ..
     
-    clear
+    # clear
 done
 
 
