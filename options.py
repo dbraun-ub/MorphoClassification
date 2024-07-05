@@ -22,6 +22,8 @@ def options():
     parser.add_argument('--drop_rate', type=float, default=0, help='Drop rate')
     parser.add_argument('--scheduler_step_size', type=int, default=10, help='Scheduler step size')
     parser.add_argument('--scheduler_gamma', type=float, default=0.1, help='Scheduler gamma value')
+    parser.add_argument('--num_epoch_unfreeze', type=int, default=100, help='Epoch number when to unfreeze all parameters from the network')
+    
 
 
  

@@ -128,6 +128,11 @@ def train(opt):
     best_val_acc = 0
     for epoch in range(opt.num_epochs):
         model.train()
+
+        if epoch == opt.num_epoch_unfreeze:
+            for param in model.classifier.parameters():
+                param.requires_grad = True
+
         running_loss = 0.0
         for batch_idx, (inputs, targets) in enumerate(train_loader):
             inputs, targets = inputs.to(device), targets.to(device)
