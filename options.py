@@ -40,5 +40,7 @@ def options():
     return opt
 
 def save_options(opt, filename='options.json'):
-    with open(os.path.join(opt.log_path, opt.log_name, filename), 'w') as f:
+    file_path = os.path.join(opt.log_path, opt.log_name, filename)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, 'w') as f:
         json.dump(vars(opt), f, indent=4)
