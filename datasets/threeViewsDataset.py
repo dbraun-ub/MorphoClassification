@@ -5,18 +5,17 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 class ThreeViewsDataset(Dataset):
-    def __init__(self, file_list, image_dir, transform=None, ext='jpg'):
+    def __init__(self, file_list, image_dir, transform=None):
         self.file_list = file_list
         self.image_dir = image_dir
         self.transform = transform
-        self.ext = ext
     
     def __len__(self):
         return len(self.file_list)
     
     def __getitem__(self, idx):
         base_name = self.file_list[idx][0]
-        img_paths = [os.path.join(self.image_dir, f"{base_name}{i}." + self.ext) for i in ['FA', 'SD', 'FP']]
+        img_paths = [os.path.join(self.image_dir, f"{base_name}{i}") for i in ['FA', 'SD', 'FP']]
         
         images = [Image.open(img_path) for img_path in img_paths]
         if self.transform:

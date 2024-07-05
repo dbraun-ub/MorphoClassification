@@ -5,18 +5,17 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 class FrontViewDataset(Dataset):
-    def __init__(self, file_list, image_dir, transform=None, ext='jpg'):
+    def __init__(self, file_list, image_dir, transform=None):
         self.file_list = file_list
         self.image_dir = image_dir
         self.transform = transform
-        self.ext = ext
     
     def __len__(self):
         return len(self.file_list)
     
     def __getitem__(self, idx):
         base_name = self.file_list[idx][0]
-        img_path = os.path.join(self.image_dir, f"{base_name}FA." + self.ext)
+        img_path = os.path.join(self.image_dir, f"{base_name}FA")
         
         image = Image.open(img_path)
         if self.transform:
