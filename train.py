@@ -100,7 +100,7 @@ def train(opt):
     val_loader = DataLoader(val_dataset, batch_size=opt.batch_size, shuffle=True)
 
     ## Create model using timm
-    model = timm.create_model(opt.model_name, pretrained=True, in_chans=in_channels, num_classes=opt.num_classes, drop_rate=opt.drop_rate)
+    model = timm.create_model(opt.model_name, pretrained=True, in_chans=in_channels, num_classes=opt.num_classes, drop_rate=opt.drop_rate).to(device)
 
     # Fine tunning: only train the fc layer
     for param in model.parameters():
@@ -130,6 +130,7 @@ def train(opt):
         model.train()
         running_loss = 0.0
         for batch_idx, (inputs, targets) in enumerate(train_loader):
+            inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, targets)
@@ -156,6 +157,7 @@ def train(opt):
         total = 0
         with torch.no_grad():
             for batch_idx, (inputs, targets) in enumerate(val_loader):
+                inputs, targets = inputs.to(device), targets.to(device)
                 outputs = model(inputs)
                 loss = criterion(outputs, targets)
                 val_loss += loss.item()
