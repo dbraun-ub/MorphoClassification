@@ -5,7 +5,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 class FrontViewDataset(Dataset):
-    def __init__(self, file_list, image_dir, transform=None, ext='JPG'):
+    def __init__(self, file_list, image_dir, transform=None, ext='jpg'):
         self.file_list = file_list
         self.image_dir = image_dir
         self.transform = transform
