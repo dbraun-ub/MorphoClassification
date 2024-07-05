@@ -15,7 +15,15 @@ class FrontViewDataset(Dataset):
     
     def __getitem__(self, idx):
         base_name = self.file_list[idx][0]
-        img_path = os.path.join(self.image_dir, f"{base_name}FA")
+
+        img_path_jpg = os.path.join(self.image_dir, f"{base_name}FA.jpg")
+        img_path_JPG = os.path.join(self.image_dir, f"{base_name}FA.JPG")
+        
+        # Check if either jpg or JPG file exists
+        if os.path.exists(img_path_jpg):
+            img_path = img_path_jpg
+        elif os.path.exists(img_path_JPG):
+            img_path = img_path_JPG
         
         image = Image.open(img_path)
         if self.transform:
