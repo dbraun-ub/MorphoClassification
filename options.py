@@ -27,7 +27,7 @@ def options():
  
     # Path
     parser.add_argument('--data_path', type=str, default='./data', help='Path to the dataset')
-    parser.add_argument('--split_path', type=str, default='./split', help='Path to the split')
+    parser.add_argument('--split_path', type=str, default='./splits', help='Path to the split')
     parser.add_argument('--log_path', type=str, default='./runs', help='Path to log runs')
 
     # Evaluation
