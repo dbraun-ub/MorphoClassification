@@ -23,6 +23,8 @@ def options():
     parser.add_argument('--scheduler_step_size', type=int, default=10, help='Scheduler step size')
     parser.add_argument('--scheduler_gamma', type=float, default=0.1, help='Scheduler gamma value')
     parser.add_argument('--num_epoch_unfreeze', type=int, default=100, help='Epoch number when to unfreeze all parameters from the network')
+    parser.add_argument('--earlyStopping_min_delta', type=float, default=0.01, help='EarlyStopping delta margin')
+    parser.add_argument('--earlyStopping_patience', type=int, default=5, help='Number of epochs without improvement in the validation loss before stopping')
     
 
 
@@ -46,3 +48,11 @@ def save_options(opt, filename='options.json'):
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     with open(file_path, 'w') as f:
         json.dump(vars(opt), f, indent=4)
+
+def load_options(filename='options.json'):
+    if os.path.exists(filename):
+        with open(filename, 'r') as f:
+            args_dict = json.load(f)
+        return argparse.Namespace(**args_dict)
+    else:
+        return None

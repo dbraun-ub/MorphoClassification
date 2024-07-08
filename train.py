@@ -122,7 +122,7 @@ def train(opt):
     writer = SummaryWriter(log_dir=os.path.join(opt.log_path, opt.log_name))
 
     # Initialize early stopping
-    early_stopping = EarlyStopping(patience=5, min_delta=0.01)
+    early_stopping = EarlyStopping(patience=opt.earlyStopping_patience, min_delta=opt.earlyStopping_min_delta)
 
     # Training loop
     best_val_acc = 0
@@ -182,7 +182,7 @@ def train(opt):
 
         if (epoch > 3) and (val_accuracy > best_val_acc):
             best_val_acc = val_accuracy
-            torch.save(model.state_dict(), f'runs/{opt.log_name}/model_epoch_{epoch+1}.pth')
+            torch.save(model.state_dict(), f'runs/{opt.log_name}/model_epoch.pth') # Don't specify the epoch number. Simply save the best result
         
         # Check for early stopping
         early_stopping(val_loss)
