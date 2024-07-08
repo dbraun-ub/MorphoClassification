@@ -2,12 +2,18 @@
 
 # Define the configurations in an array
 declare -a configs=(
-    "mobilenetv2_120d_002 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name mobilenetv2_120d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
-    "resnet50d_002 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 4 5 6 7 8 9 --val_folds 1 --test_folds 3 --model_name resnet50d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
-    "resnet50d_003 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 6 7 8 9 --val_folds 5 --test_folds 0 --model_name resnet50d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
-    "resnet50d_004 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 2 3 5 6 7 8 --val_folds 9 --test_folds 4 --model_name resnet50d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
-    "resnet50d_005 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 3 4 5 6 7 9 --val_folds 2 --test_folds 8 --model_name resnet50d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
-    "resnet50d_006 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 5 7 8 9 --val_folds 0 --test_folds 6 --model_name resnet50d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
+    # "mobilenetv2_120d_002 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name mobilenetv2_120d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
+    # "resnet50d_002 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 4 5 6 7 8 9 --val_folds 1 --test_folds 3 --model_name resnet50d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
+    # "resnet50d_003 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 6 7 8 9 --val_folds 5 --test_folds 0 --model_name resnet50d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
+    # "resnet50d_004 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 2 3 5 6 7 8 --val_folds 9 --test_folds 4 --model_name resnet50d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
+    # "resnet50d_005 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 3 4 5 6 7 9 --val_folds 2 --test_folds 8 --model_name resnet50d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
+    # "resnet50d_006 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 5 7 8 9 --val_folds 0 --test_folds 6 --model_name resnet50d --num_epoch_unfreeze 100 --earlyStopping_patience 5"
+    "resnet50d_007 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name resnet50d --num_epoch_unfreeze 10 --earlyStopping_patience 10"
+    "resnet50d_008 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 4 5 6 7 8 9 --val_folds 1 --test_folds 3 --model_name resnet50d --num_epoch_unfreeze 10 --earlyStopping_patience 10"
+    "resnet50d_009 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 6 7 8 9 --val_folds 5 --test_folds 0 --model_name resnet50d --num_epoch_unfreeze 10 --earlyStopping_patience 10"
+    "resnet50d_0010 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 2 3 5 6 7 8 --val_folds 9 --test_folds 4 --model_name resnet50d --num_epoch_unfreeze 10 --earlyStopping_patience 10"
+    "resnet50d_0011 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 3 4 5 6 7 9 --val_folds 2 --test_folds 8 --model_name resnet50d --num_epoch_unfreeze 10 --earlyStopping_patience 10"
+    "resnet50d_0012 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 5 7 8 9 --val_folds 0 --test_folds 6 --model_name resnet50d --num_epoch_unfreeze 10 --earlyStopping_patience 10"
 )
 
 # Loop over each configuration
