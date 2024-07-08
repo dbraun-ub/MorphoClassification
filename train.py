@@ -97,7 +97,7 @@ def train(opt):
 
     # Define data loader
     train_loader = DataLoader(train_dataset, batch_size=opt.batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=opt.batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=1, shuffle=True)
 
     ## Create model using timm
     model = timm.create_model(opt.model_name, pretrained=True, in_chans=in_channels, num_classes=opt.num_classes, drop_rate=opt.drop_rate).to(device)
@@ -163,6 +163,9 @@ def train(opt):
         avg_train_loss = running_loss / len(train_loader)
         writer.add_scalar('Loss/train', avg_train_loss, epoch)
 
+        # Step the scheduler
+        scheduler.step()
+
         # Validation step
         model.eval()
         val_loss = 0
@@ -198,9 +201,6 @@ def train(opt):
         if early_stopping.early_stop:
             print("Early stopping triggered")
             break
-
-        # Step the scheduler
-        scheduler.step()
 
     writer.close()
 
