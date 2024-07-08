@@ -167,7 +167,7 @@ def train(opt):
         scheduler.step()
 
         # Validation step
-        model.eval()
+        # model.eval()
         val_loss = 0
         correct = 0
         total = 0
