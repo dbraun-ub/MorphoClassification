@@ -134,6 +134,7 @@ def train(opt):
 
     # Training loop
     best_val_acc = 0
+    best_val_loss = 0
     for epoch in range(opt.num_epochs):
         model.train()
 
@@ -185,16 +186,26 @@ def train(opt):
                     img_grid = vutils.make_grid(inputs.cpu(), normalize=True)
                     writer.add_image('Images/val', img_grid, epoch)
         
-        val_loss /= len(val_loader)
+        val_loss = val_loss / len(val_loader)
         val_accuracy = 100 * correct / total
         print(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%')
 
         writer.add_scalar('Loss/val', val_loss, epoch)
         writer.add_scalar('Accuracy/val', val_accuracy, epoch)
 
-        if (epoch > 3) and (val_accuracy > best_val_acc):
+        # if (epoch > 3) and (val_accuracy > best_val_acc):
+        #     best_val_acc = val_accuracy
+        #     torch.save(model.state_dict(), f'runs/{opt.log_name}/model_epoch.pth') # Don't specify the epoch number. Simply save the best result
+
+        # Save the model if the validation loss has decreased
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            torch.save(model.state_dict(), f'runs/{opt.log_name}/model_best_loss.pth')
+
+        # Save the model if the validation accuracy has increased
+        if val_accuracy > best_val_acc:
             best_val_acc = val_accuracy
-            torch.save(model.state_dict(), f'runs/{opt.log_name}/model_epoch.pth') # Don't specify the epoch number. Simply save the best result
+            torch.save(model.state_dict(), f'runs/{opt.log_name}/model_best_acc.pth')
         
         # Check for early stopping
         early_stopping(val_loss)
