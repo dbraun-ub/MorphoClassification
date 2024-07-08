@@ -2,9 +2,9 @@
 
 # Define the configurations in an array
 declare -a configs=(
-    "resnet50_007 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 2 3 4 6 7 8 --val_folds 5 --test_folds 9 --model_name resnet50 --num_epoch_unfreeze 10"
-    "resnet50_008 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 6 7 8 9 --val_folds 5 --test_folds 0 --model_name resnet50 --num_epoch_unfreeze 10"
-    "resnet50_009 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 6 7 8 9 --val_folds 5 --test_folds 1 --model_name resnet50 --num_epoch_unfreeze 10"
+    "resnet50_010 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 2 3 4 5 6 7 --val_folds 8 --test_folds 9 --model_name resnet50 --num_epoch_unfreeze 10 --earlyStopping_patience 10"
+    "resnet50_011 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 6 7 8 9 --val_folds 5 --test_folds 0 --model_name resnet50 --num_epoch_unfreeze 10 --earlyStopping_patience 10"
+    "resnet50_012 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 2 4 5 6 8 9 --val_folds 3 --test_folds 7 --model_name resnet50 --num_epoch_unfreeze 10 --earlyStopping_patience 10"
 )
 
 # Loop over each configuration
