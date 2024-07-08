@@ -2,5 +2,4 @@ datasets/__pycache__/*
 .ipynb_checkpoints/Models_Evaluation-checkpoint.ipynb
 runs/*
 __pycache__/*
-
-Models_Evaluation.ipynb
+*.ipynb
