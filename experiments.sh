@@ -2,9 +2,13 @@
 
 # Define the configurations in an array
 declare -a configs=(
-    "resnet50_010 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 2 3 4 5 6 7 --val_folds 8 --test_folds 9 --model_name resnet50 --num_epoch_unfreeze 10 --earlyStopping_patience 10"
-    "resnet50_011 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 6 7 8 9 --val_folds 5 --test_folds 0 --model_name resnet50 --num_epoch_unfreeze 10 --earlyStopping_patience 10"
-    "resnet50_012 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 2 4 5 6 8 9 --val_folds 3 --test_folds 7 --model_name resnet50 --num_epoch_unfreeze 10 --earlyStopping_patience 10"
+    "convnext_tiny_001 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name convnext_tiny --num_epoch_unfreeze 10 --earlyStopping_patience 5"
+    "swin_s3_tiny_224_001 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name swin_s3_tiny_224 --num_epoch_unfreeze 10 --earlyStopping_patience 5"
+    "levit_256_001 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name levit_256 --num_epoch_unfreeze 10 --earlyStopping_patience 5"
+    "resnet50d_001 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name resnet50d --num_epoch_unfreeze 10 --earlyStopping_patience 5"
+    "swin_tiny_patch4_window7_224_001 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name swin_tiny_patch4_window7_224 --num_epoch_unfreeze 10 --earlyStopping_patience 5"
+    "levit_192_001 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name levit_192 --num_epoch_unfreeze 10 --earlyStopping_patience 5"
+    "resnet33ts_001 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name resnet33ts --num_epoch_unfreeze 10 --earlyStopping_patience 5"
 )
 
 # Loop over each configuration

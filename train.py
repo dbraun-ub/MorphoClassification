@@ -106,8 +106,16 @@ def train(opt):
     for param in model.parameters():
         param.requires_grad = False
 
-    if opt.model_name == 'resnet50':
+    if 'resnet50' in opt.model_name:
         for param in model.fc.parameters():
+            param.requires_grad = True
+    elif 'convnext' in opt.model_name or 'swin' in opt.model_name or opt.model_name == "resnet33ts":
+        for param in model.head.parameters():
+            param.requires_grad = True
+    elif 'levit' in opt.model_name:
+        for param in model.head.parameters():
+            param.requires_grad = True
+        for param in model.head_dist.parameters():
             param.requires_grad = True
     else: # mobilenetv2_120d
         for param in model.classifier.parameters():
