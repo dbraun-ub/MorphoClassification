@@ -134,7 +134,7 @@ def train(opt):
 
     # Training loop
     best_val_acc = 0
-    best_val_loss = None
+    best_val_loss = 1e8 # almost like inf value
     for epoch in range(opt.num_epochs):
         model.train()
 
@@ -198,7 +198,7 @@ def train(opt):
         #     torch.save(model.state_dict(), f'runs/{opt.log_name}/model_epoch.pth') # Don't specify the epoch number. Simply save the best result
 
         # Save the model if the validation loss has decreased
-        if (val_loss < best_val_loss) or (best_val_loss is None):
+        if (val_loss < best_val_loss):
             best_val_loss = val_loss
             torch.save(model.state_dict(), f'runs/{opt.log_name}/model_best_loss.pth')
 
