@@ -197,7 +197,7 @@ def train(opt):
         
         val_loss = val_loss / len(val_loader)
         val_accuracy = 100 * correct / total
-        print(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.3f}%')
+        print(f'Valid Loss: {val_loss:.4f}, Valid Accuracy: {val_accuracy:.3f}%')
 
         writer.add_scalar('Loss/val', val_loss, epoch)
         writer.add_scalar('Accuracy/val', val_accuracy, epoch)
