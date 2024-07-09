@@ -134,7 +134,7 @@ def train(opt):
 
     # Training loop
     best_val_acc = 0
-    best_val_loss = 1e8 # almost like inf value
+    # best_val_loss = 1e8 # almost like inf value
     for epoch in range(opt.num_epochs):
         model.train()
 
@@ -142,7 +142,9 @@ def train(opt):
             for param in model.parameters():
                 param.requires_grad = True
 
-        running_loss = 0.0
+        running_loss = 0
+        correct = 0
+        total = 0
         for batch_idx, (inputs, targets) in enumerate(train_loader):
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
@@ -153,9 +155,12 @@ def train(opt):
 
             # for logging
             running_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += targets.size(0)
+            correct += (predicted == targets).sum().item()
             
             if batch_idx % 20 == 0:
-                print(f'Epoch [{epoch+1}/{opt.num_epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {loss.item()}')
+                print(f'Epoch [{epoch+1}/{opt.num_epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {loss.item()}, Acc: {100 * (predicted == targets).sum().item() / targets.size(0)}')
 
             if (epoch == 0) and batch_idx == 0:
                 img_grid = vutils.make_grid(inputs.cpu(), normalize=True)
@@ -164,14 +169,18 @@ def train(opt):
         avg_train_loss = running_loss / len(train_loader)
         writer.add_scalar('Loss/train', avg_train_loss, epoch)
 
+        train_accuracy = 100 * correct / total
+        print(f'Train Loss: {avg_train_loss:.4f}, Train Accuracy: {train_accuracy:.3f}%')
+        writer.add_scalar('Accuracy/train', train_accuracy, epoch)
+
         # Step the scheduler
         scheduler.step()
 
         # Validation step
         model.eval()
-        val_loss = 0.0
-        correct = 0.0
-        total = 0.0
+        val_loss = 0
+        correct = 0
+        total = 0
         with torch.no_grad():
             for batch_idx, (inputs, targets) in enumerate(val_loader):
                 inputs, targets = inputs.to(device), targets.to(device)
@@ -188,7 +197,7 @@ def train(opt):
         
         val_loss = val_loss / len(val_loader)
         val_accuracy = 100 * correct / total
-        print(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%')
+        print(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.3f}%')
 
         writer.add_scalar('Loss/val', val_loss, epoch)
         writer.add_scalar('Accuracy/val', val_accuracy, epoch)
@@ -197,11 +206,13 @@ def train(opt):
         #     best_val_acc = val_accuracy
         #     torch.save(model.state_dict(), f'runs/{opt.log_name}/model_epoch.pth') # Don't specify the epoch number. Simply save the best result
 
-        # Save the model if the validation loss has decreased
-        if (val_loss < best_val_loss):
-            best_val_loss = val_loss
-            torch.save(model.state_dict(), f'runs/{opt.log_name}/model_best_loss.pth')
+        # Generally performs worse or equal
+        # # Save the model if the validation loss has decreased
+        # if (val_loss < best_val_loss):
+        #     best_val_loss = val_loss
+        #     torch.save(model.state_dict(), f'runs/{opt.log_name}/model_best_loss.pth')
 
+        
         # Save the model if the validation accuracy has increased
         if val_accuracy > best_val_acc:
             best_val_acc = val_accuracy
