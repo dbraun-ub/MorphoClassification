@@ -34,6 +34,33 @@ class EarlyStopping:
             self.best_loss = val_loss
             self.counter = 0
 
+def validation_step(model, criterion, val_loader, device):
+    model.eval()
+    val_loss = 0
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for inputs, targets in val_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            val_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += targets.size(0)
+            correct += (predicted == targets).sum().item()
+
+            # if (epoch == 0) and batch_idx == 0:
+            #     img_grid = vutils.make_grid(inputs.cpu(), normalize=True)
+            #     writer.add_image('Images/val', img_grid, epoch)
+    
+    val_loss = val_loss / len(val_loader)
+    val_accuracy = 100 * correct / total
+    # print(f'Valid Loss: {val_loss:.4f}, Valid Accuracy: {val_accuracy:.3f}%')
+
+    # writer.add_scalar('Loss/val', val_loss, epoch)
+    # writer.add_scalar('Accuracy/val', val_accuracy, epoch)
+    return val_loss, val_accuracy
+
 def train(opt):
     # Set seed for reproducibility
     seed = 42
@@ -176,27 +203,30 @@ def train(opt):
         # Step the scheduler
         scheduler.step()
 
-        # Validation step
-        model.eval()
-        val_loss = 0
-        correct = 0
-        total = 0
-        with torch.no_grad():
-            for batch_idx, (inputs, targets) in enumerate(val_loader):
-                inputs, targets = inputs.to(device), targets.to(device)
-                outputs = model(inputs)
-                loss = criterion(outputs, targets)
-                val_loss += loss.item()
-                _, predicted = torch.max(outputs.data, 1)
-                total += targets.size(0)
-                correct += (predicted == targets).sum().item()
 
-                if (epoch == 0) and batch_idx == 0:
-                    img_grid = vutils.make_grid(inputs.cpu(), normalize=True)
-                    writer.add_image('Images/val', img_grid, epoch)
+
+        # Validation step
+        val_loss, val_accuracy = validation_step(model, criterion, val_loader, device)
+        # model.eval()
+        # val_loss = 0
+        # correct = 0
+        # total = 0
+        # with torch.no_grad():
+        #     for batch_idx, (inputs, targets) in enumerate(val_loader):
+        #         inputs, targets = inputs.to(device), targets.to(device)
+        #         outputs = model(inputs)
+        #         loss = criterion(outputs, targets)
+        #         val_loss += loss.item()
+        #         _, predicted = torch.max(outputs.data, 1)
+        #         total += targets.size(0)
+        #         correct += (predicted == targets).sum().item()
+
+        #         if (epoch == 0) and batch_idx == 0:
+        #             img_grid = vutils.make_grid(inputs.cpu(), normalize=True)
+        #             writer.add_image('Images/val', img_grid, epoch)
         
-        val_loss = val_loss / len(val_loader)
-        val_accuracy = 100 * correct / total
+        # val_loss = val_loss / len(val_loader)
+        # val_accuracy = 100 * correct / total
         print(f'Valid Loss: {val_loss:.4f}, Valid Accuracy: {val_accuracy:.3f}%')
 
         writer.add_scalar('Loss/val', val_loss, epoch)
