@@ -159,15 +159,33 @@ def train(opt):
     # Initialize early stopping
     early_stopping = EarlyStopping(patience=opt.earlyStopping_patience, min_delta=opt.earlyStopping_min_delta)
 
+    
+    unfreeze_step = 0
+    unfreeze_progression = {
+        'convnext_tiny': {
+            0: model.stages[3],
+            1: model.stages[2],
+            2: model.stages[1],
+            3: model.stages[0],
+            4: model.stem,
+        }
+    }
+
     # Training loop
     best_val_acc = 0
     # best_val_loss = 1e8 # almost like inf value
     for epoch in range(opt.num_epochs):
         model.train()
 
-        if epoch == opt.num_epoch_unfreeze:
-            for param in model.parameters():
-                param.requires_grad = True
+        if opt.progressive_unfreeze:
+            if epoch >= opt.num_epoch_unfreeze:
+                for param in unfreeze_progression[opt.model_name][unfreeze_step].parameters():
+                    param.requires_grad = True
+                unfreeze_step += 1
+        else: 
+            if epoch == opt.num_epoch_unfreeze:
+                for param in model.parameters():
+                    param.requires_grad = True
 
         running_loss = 0
         correct = 0

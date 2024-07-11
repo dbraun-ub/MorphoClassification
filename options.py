@@ -23,6 +23,8 @@ def options():
     parser.add_argument('--scheduler_step_size', type=int, default=10, help='Scheduler step size')
     parser.add_argument('--scheduler_gamma', type=float, default=0.1, help='Scheduler gamma value')
     parser.add_argument('--num_epoch_unfreeze', type=int, default=100, help='Epoch number when to unfreeze all parameters from the network')
+    parser.add_argument('--progressive_unfreeze', action='store_true', help='Activate or deactivate the progressive unfreeze')
+    parser.add_argument('--progressive_unfreeze_step', type=int, default=1, help='unfreeze step in the case the progressive unfreeze is activated')
     parser.add_argument('--earlyStopping_min_delta', type=float, default=0.01, help='EarlyStopping delta margin')
     parser.add_argument('--earlyStopping_patience', type=int, default=5, help='Number of epochs without improvement in the validation loss before stopping')
     
