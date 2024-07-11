@@ -182,6 +182,8 @@ def train(opt):
                 for param in unfreeze_progression[opt.model_name][unfreeze_step].parameters():
                     param.requires_grad = True
                 unfreeze_step += 1
+                if unfreeze_step > len(unfreeze_progression[opt.model_name]):
+                    opt.progressive_unfreeze = False
         else: 
             if epoch == opt.num_epoch_unfreeze:
                 for param in model.parameters():
