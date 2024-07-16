@@ -3,3 +3,5 @@ datasets/__pycache__/*
 runs/*
 __pycache__/*
 *.ipynb
+runs.zip
+Models_Evaluation.ipynb
