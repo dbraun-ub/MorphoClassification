@@ -4,11 +4,28 @@ from PIL import Image
 
 from torch.utils.data import Dataset
 
+label_to_index = {
+    5:{
+        'ecto': 0, 
+        'ecto-meso': 1,
+        'meso': 2,
+        'meso-endo': 3,
+        'endo': 4
+    },
+    3:{
+        'ecto': 0, 
+        'meso': 1,
+        'endo': 2
+    }
+}
+
+
 class FrontViewDataset(Dataset):
-    def __init__(self, file_list, image_dir, transform=None):
+    def __init__(self, file_list, image_dir, num_classes=5, transform=None):
         self.file_list = file_list
         self.image_dir = image_dir
         self.transform = transform
+        self.num_classes = num_classes
     
     def __len__(self):
         return len(self.file_list)
@@ -29,14 +46,6 @@ class FrontViewDataset(Dataset):
         if self.transform:
             image = self.transform(image)
 
-        label_to_index = {
-            'ecto': 0, 
-            'ecto-meso': 1,
-            'meso': 2,
-            'meso-endo': 3,
-            'endo': 4
-            }
-
-        label = label_to_index[self.file_list[idx][1]]
+        label = label_to_index[self.num_classes][self.file_list[idx][1]]
         
         return image, label
