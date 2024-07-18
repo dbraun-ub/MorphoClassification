@@ -27,6 +27,9 @@ def options():
     parser.add_argument('--progressive_unfreeze_step', type=int, default=1, help='unfreeze step in the case the progressive unfreeze is activated')
     parser.add_argument('--earlyStopping_min_delta', type=float, default=0.01, help='EarlyStopping delta margin')
     parser.add_argument('--earlyStopping_patience', type=int, default=5, help='Number of epochs without improvement in the validation loss before stopping')
+
+    # Loss
+    parser.add_argument('--linear_target', action='store_true', help='Evaluate a linear value instead of classes')
     
     # device
     parser.add_argument('--device', type=str, default='xpu', help='Device to use for training')
