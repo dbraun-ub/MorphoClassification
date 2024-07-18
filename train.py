@@ -36,6 +36,9 @@ class EarlyStopping:
 
 def validation_step(model, criterion, val_loader, device):
     model.eval()
+    model.to(device)
+    if opt.device == "xpu":
+        model = ipex.optimize(model, dtype=torch.float32)
     val_loss = 0
     correct = 0
     total = 0
@@ -61,6 +64,29 @@ def validation_step(model, criterion, val_loader, device):
     # writer.add_scalar('Accuracy/val', val_accuracy, epoch)
     return val_loss, val_accuracy
 
+# def set_device(opt):
+#     # device = torch.device("cpu")
+#     if opt.device == "cuda":
+#         if torch.cuda.is_available():
+#             device = torch.device("cuda")
+#         else:
+#             print("cuda is not available")
+#             device = torch.device("cpu")
+#     elif opt.device == "xpu":
+#         import intel_extension_for_pytorch as ipex
+#         if ipex.xpu.is_available():
+#             device = "xpu"
+#             print("hello there")
+#         else:
+#             opt.device = "cpu"
+#             print("xpu is not available")
+#             device = torch.device("cpu")
+#     else:
+#         device = torch.device("cpu")
+
+#     print(f"Using device: {device}")
+#     return device
+
 def train(opt):
     # Set seed for reproducibility
     seed = 42
@@ -69,39 +95,32 @@ def train(opt):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False  # Disable cudnn's auto-tuner for reproducible results
 
-    # Check if GPU is available
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cpu")
+    if opt.device == "cuda":
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            print("cuda is not available")
+            device = torch.device("cpu")
+    elif opt.device == "xpu":
+        import intel_extension_for_pytorch as ipex
+        if ipex.xpu.is_available():
+            device = "xpu"
+        else:
+            opt.device = "cpu"
+            print("xpu is not available")
+            device = torch.device("cpu")
+    else:
+        device = torch.device("cpu")
+
     print(f"Using device: {device}")
 
+    
     ## Variables
-    # print(f'model name: {opt.model_name}')
-    # print(f'log name: {opt.log_name}')
-    # print(f'split: {opt.split}')
-    # print(f'image size: {opt.image_size}')
-    # print(f'num classes: {opt.num_classes}')
-    # print(f'dataset: {opt.dataset}')
-    # print(f'dataset path: {opt.dataset_path}')
-    # print(f'train folds: {opt.train_folds}')
-    # print(f'val folds: {opt.val_folds}')
-    # print(f'batch size: {opt.batch_size}')
-    # print(f'learning rate: {opt.learning_rate}')
-    # print(f'num epochs max: {opt.num_epochs}')
-    # print(f'num epochs max: {opt.num_epochs}')
     print('-'*20)
     print(opt)
     print('-'*20)
 
-
-
-    # split = opt.split
-    # split_dir = opt.split_path#r'C:\Users\Daniel\Documents\Workspace\ClinicDataAnalysis\splits'
-    # image_dir = opt.dataset_path#r'C:\Users\Daniel\Documents\Data\Batch1'
-    # train_folds = opt.train_folds#[0,1,2,3,4,5,6,7]
-    # val_folds = opt.val_folds#[8]
-    # test_folds = [9] 
-    # num_classes = opt.num_classes#5
-    # in_channels = 3
-    # log_name = opt.log_name#model_name + '_' + '001'
 
 
     ## Define your dataset
@@ -127,7 +146,9 @@ def train(opt):
     val_loader = DataLoader(val_dataset, batch_size=opt.batch_size, shuffle=True)
 
     ## Create model using timm
-    model = timm.create_model(opt.model_name, pretrained=True, in_chans=in_channels, num_classes=opt.num_classes, drop_rate=opt.drop_rate).to(device)
+    # print("model not loaded yet")
+    model = timm.create_model(opt.model_name, pretrained=True, in_chans=in_channels, num_classes=opt.num_classes, drop_rate=opt.drop_rate)
+    # print("model loaded")
 
     # Fine tunning: only train the fc layer
     for param in model.parameters():
@@ -171,11 +192,16 @@ def train(opt):
         }
     }
 
+    # device = set_device(opt)
+
     # Training loop
     best_val_acc = 0
     # best_val_loss = 1e8 # almost like inf value
     for epoch in range(opt.num_epochs):
         model.train()
+        model.to(device)
+        if opt.device == "xpu":
+            model, optimizer = ipex.optimize(model, optimizer=optimizer, dtype=torch.float32)
 
         if opt.progressive_unfreeze:
             if epoch >= opt.num_epoch_unfreeze:

@@ -28,8 +28,8 @@ def options():
     parser.add_argument('--earlyStopping_min_delta', type=float, default=0.01, help='EarlyStopping delta margin')
     parser.add_argument('--earlyStopping_patience', type=int, default=5, help='Number of epochs without improvement in the validation loss before stopping')
     
-
-
+    # device
+    parser.add_argument('--device', type=str, default='xpu', help='Device to use for training')
  
     # Path
     parser.add_argument('--data_path', type=str, default='./data', help='Path to the dataset')
@@ -58,3 +58,8 @@ def load_options(filename='options.json'):
         return argparse.Namespace(**args_dict)
     else:
         return None
+
+
+if __name__ == '__main__':
+    options()
+ 
