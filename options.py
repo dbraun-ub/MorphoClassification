@@ -32,7 +32,7 @@ def options():
     parser.add_argument('--linear_target', action='store_true', help='Evaluate a linear value instead of classes')
     
     # device
-    parser.add_argument('--device', type=str, default='xpu', help='Device to use for training')
+    parser.add_argument('--device', type=str, default='cuda', help='Device to use for training')
  
     # Path
     parser.add_argument('--data_path', type=str, default='./data', help='Path to the dataset')

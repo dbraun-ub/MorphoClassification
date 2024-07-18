@@ -54,7 +54,7 @@ def validation_step(model, criterion, val_loader, device):
             else:
                 loss = criterion(outputs, targets)
                 _, predicted = torch.max(outputs.data, 1)
-                
+
             val_loss += loss.item()
             total += targets.size(0)
             correct += (predicted == targets).sum().item()
@@ -154,7 +154,10 @@ def train(opt):
 
     ## Create model using timm
     # print("model not loaded yet")
-    model = timm.create_model(opt.model_name, pretrained=True, in_chans=in_channels, num_classes=opt.num_classes, drop_rate=opt.drop_rate)
+    if opt.linear_target:
+        model = timm.create_model(opt.model_name, pretrained=True, in_chans=in_channels, num_classes=1, drop_rate=opt.drop_rate)
+    else:
+        model = timm.create_model(opt.model_name, pretrained=True, in_chans=in_channels, num_classes=opt.num_classes, drop_rate=opt.drop_rate)
     # print("model loaded")
 
     # Fine tunning: only train the fc layer
