@@ -46,9 +46,16 @@ def validation_step(model, criterion, val_loader, device):
         for inputs, targets in val_loader:
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs)
-            loss = criterion(outputs, targets)
+            if opt.linear_target:
+                sigmoid = nn.Sigmoid()
+                outputs = sigmoid(outputs)
+                loss = criterion(outputs, targets / (opt.num_classes - 1))
+                predicted = torch.round(outputs * (opt.num_classes - 1))
+            else:
+                loss = criterion(outputs, targets)
+                _, predicted = torch.max(outputs.data, 1)
+                
             val_loss += loss.item()
-            _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
             correct += (predicted == targets).sum().item()
 
@@ -170,7 +177,11 @@ def train(opt):
             param.requires_grad = True
 
     # Define loss function and optimizer
-    criterion = nn.CrossEntropyLoss()
+    if opt.linear_target:
+        criterion = nn.MSELoss()
+    else:
+        criterion = nn.CrossEntropyLoss()
+
     optimizer = optim.Adam(model.parameters(), lr=opt.learning_rate)
     scheduler = StepLR(optimizer, step_size=opt.scheduler_step_size, gamma=opt.scheduler_gamma)
 
@@ -222,13 +233,21 @@ def train(opt):
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
-            loss = criterion(outputs, targets)
+            if opt.linear_target:
+                sigmoid = nn.Sigmoid()
+                outputs = sigmoid(outputs)
+                loss = criterion(outputs, targets / (opt.num_classes - 1))
+                predicted = torch.round(outputs * (opt.num_classes - 1))
+            else:
+                loss = criterion(outputs, targets)
+                _, predicted = torch.max(outputs.data, 1)
             loss.backward()
             optimizer.step()
 
             # for logging
             running_loss += loss.item()
-            _, predicted = torch.max(outputs.data, 1)
+
+            # _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
             correct += (predicted == targets).sum().item()
             

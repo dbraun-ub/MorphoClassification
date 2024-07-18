@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Define the configurations in an array
 declare -a configs=(
@@ -58,7 +58,7 @@ declare -a configs=(
     # "resnet33ts_006 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 3 4 5 6 7 9 --val_folds 2 --test_folds 8 --model_name resnet33ts --num_epoch_unfreeze 10 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0"
   
     # "convnext_tiny_005 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name convnext_tiny --num_epoch_unfreeze 5 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0 --progressive_unfreeze --progressive_unfreeze_step 5"
-    "convnext_tiny_006 --data_path /data --train_folds 0 2 4 5 6 7 8 9 --val_folds 1 --test_folds 3 --model_name convnext_tiny --num_epoch_unfreeze 5 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0 --progressive_unfreeze --progressive_unfreeze_step 5"
+    # "convnext_tiny_006 --data_path /data --train_folds 0 2 4 5 6 7 8 9 --val_folds 1 --test_folds 3 --model_name convnext_tiny --num_epoch_unfreeze 5 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0 --progressive_unfreeze --progressive_unfreeze_step 5"
     
     # "convnext_tiny_007 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 6 7 8 9 --val_folds 5 --test_folds 0 --model_name convnext_tiny --num_epoch_unfreeze 5 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0 --progressive_unfreeze --progressive_unfreeze_step 5"
     # "convnext_tiny_008 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 2 3 5 6 7 8 --val_folds 9 --test_folds 4 --model_name convnext_tiny --num_epoch_unfreeze 5 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0 --progressive_unfreeze --progressive_unfreeze_step 5"
@@ -70,6 +70,9 @@ declare -a configs=(
     # "convnext_tiny_008 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 2 3 5 6 7 8 --val_folds 9 --test_folds 4 --model_name convnext_tiny --num_epoch_unfreeze 100 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0 --progressive_unfreeze --progressive_unfreeze_step 2 --num_epoch_unfreeze 3"
     # "convnext_tiny_009 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 1 3 4 5 6 7 9 --val_folds 2 --test_folds 8 --model_name convnext_tiny --num_epoch_unfreeze 100 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0 --progressive_unfreeze --progressive_unfreeze_step 2 --num_epoch_unfreeze 3"
 
+    "convnext_tiny_010 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 3 4 5 6 7 9 --val_folds 8 --test_folds 1 --model_name convnext_tiny --num_epoch_unfreeze 10 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0 --linear_target"
+    "convnext_tiny_011 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 0 2 4 5 6 7 8 9 --val_folds 1 --test_folds 3 --model_name convnext_tiny --num_epoch_unfreeze 10 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0 --linear_target"
+    "convnext_tiny_012 --data_path /home/ubuntu/data/MORPHO_Batch1 --train_folds 1 2 3 4 6 7 8 9 --val_folds 5 --test_folds 0 --model_name convnext_tiny --num_epoch_unfreeze 10 --earlyStopping_patience 10 --learning_rate 0.001 --dataset ThreeViewsDataset --image_size 3 224 320 --scheduler_step_size 10 --drop_rate 0 --linear_target"
 )
 
 # Loop over each configuration
