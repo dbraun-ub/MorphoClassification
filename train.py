@@ -145,8 +145,8 @@ def train(opt):
     in_channels, height, width = opt.image_size
     transform = create_transform((in_channels,height,width))
 
-    train_dataset = MyDataset(train_df.values, opt.data_path, transform)
-    val_dataset   = MyDataset(val_df.values, opt.data_path, transform)
+    train_dataset = MyDataset(train_df.values, opt.data_path, transform, num_classes=opt.num_classes)
+    val_dataset   = MyDataset(val_df.values, opt.data_path, transform, num_classes=opt.num_classes)
 
     # Define data loader
     train_loader = DataLoader(train_dataset, batch_size=opt.batch_size, shuffle=True)
