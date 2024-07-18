@@ -23,6 +23,9 @@ class ThreeViewsDataset(Dataset):
             img_path = img_path_jpg
         elif os.path.exists(img_path_JPG):
             img_path = img_path_JPG
+        else:
+            print(f"Image not found: {filename}")
+            exit(0)
 
         return img_path
 
