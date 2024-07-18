@@ -239,7 +239,6 @@ def train(opt):
             if opt.linear_target:
                 sigmoid = nn.Sigmoid()
                 outputs = sigmoid(outputs).squeeze(1)
-                target = target
                 loss = criterion(outputs, targets / (opt.num_classes - 1))
                 predicted = torch.round(outputs * (opt.num_classes - 1))
             else:
