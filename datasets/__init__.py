@@ -1,2 +1,2 @@
 from .threeViewsDataset import ThreeViewsDataset
-from .frontViewDataset import FrontViewDataset
+from .frontViewDataset import FrontViewDataset, FrontViewDatasetV2
