@@ -148,13 +148,16 @@ def train(opt):
         ])
         train_file_list = merge_df_with_markers(train_df)
         val_file_list = merge_df_with_markers(val_df)
+
+        train_dataset = MyDataset(train_file_list, opt.data_path, (width, height), transform, num_classes=opt.num_classes)
+        val_dataset   = MyDataset(val_file_list, opt.data_path, (width, height), transform, num_classes=opt.num_classes)
     else:
         transform = create_transform((in_channels,height,width))
         train_file_list = train_df.values
         val_file_list = val_df.values
 
-    train_dataset = MyDataset(train_file_list, opt.data_path, transform, num_classes=opt.num_classes)
-    val_dataset   = MyDataset(val_file_list, opt.data_path, transform, num_classes=opt.num_classes)
+        train_dataset = MyDataset(train_file_list, opt.data_path, transform, num_classes=opt.num_classes)
+        val_dataset   = MyDataset(val_file_list, opt.data_path, transform, num_classes=opt.num_classes)
 
     # Define data loader
     train_loader = DataLoader(train_dataset, batch_size=opt.batch_size, shuffle=True)
