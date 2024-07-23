@@ -233,12 +233,23 @@ class ThreeViewsDatasetV2(Dataset):
         img_SD = self.center_crop_resize(img_SD, (int(0.25 * width), height), SD_markers, item)
         img_FP = self.center_crop_resize(img_FP, (int(0.375 * width), height), FP_markers, item)
         
-        # if self.transform:
-        #     img_FA = self.transform(img_FA)
-        #     img_SD = self.transform(img_SD)
-        #     img_FP = self.transform(img_FP)
-
-        
         image = self.concatenate_three_views(img_FA, img_SD, img_FP)
+
+        label_to_index = {
+            5:{
+                'ecto': 0, 
+                'ecto-meso': 1,
+                'meso': 2,
+                'meso-endo': 3,
+                'endo': 4
+            },
+            3:{
+                'ecto': 0, 
+                'meso': 1,
+                'endo': 2
+            }
+        }
+
+        label = label_to_index[self.num_classes][item["morpho-1"]]
         
-        return image
+        return image, label
