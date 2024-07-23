@@ -1,5 +1,6 @@
 import os
 from PIL import Image
+import numpy as np
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 
@@ -99,11 +100,18 @@ class ThreeViewsDataset(Dataset):
 
 
 class ThreeViewsDatasetV2(Dataset):
-    def __init__(self, file_list, image_dir, transform=None, num_classes=5):
+    def __init__(self, file_list, image_dir, size, transform=None, num_classes=5):
         self.file_list = file_list
         self.image_dir = image_dir
         self.transform = transform
         self.num_classes = num_classes
+        if isinstance(size, tuple):
+            self.size = size
+            if size[0] != size[1]:
+                Warning('Works better with square input image.')
+        else:
+            self.size = (size, size)
+
     
     def __len__(self):
         return len(self.file_list)
@@ -126,7 +134,7 @@ class ThreeViewsDatasetV2(Dataset):
     @staticmethod
     def center_crop_resize(img, size, markers, item):
         x = np.zeros(len(markers))
-        y = np.zeros(len(markers))
+        # y = np.zeros(len(markers))
         
         for idx, m in enumerate(markers):
             x[idx] = item['x_pix_' + m]
