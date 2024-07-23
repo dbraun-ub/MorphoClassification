@@ -5,7 +5,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 # from torchvision.transforms import ToTensor
 import torchvision.transforms as transforms
-from datasets import ThreeViewsDataset, FrontViewDataset, FrontViewDatasetV2 
+from datasets import ThreeViewsDataset, FrontViewDataset, FrontViewDatasetV2, ThreeViewsDatasetV2
 import timm
 import pandas as pd
 import numpy as np
@@ -132,6 +132,7 @@ def train(opt):
         'FrontViewDataset': FrontViewDataset,
         'ThreeViewsDataset': ThreeViewsDataset,
         'FrontViewDatasetV2': FrontViewDatasetV2,
+        'ThreeViewsDatasetV2': ThreeViewsDatasetV2,
     }   
 
     # image name list
@@ -141,7 +142,7 @@ def train(opt):
     # Init datasets
     MyDataset = list_datasets[opt.dataset]
     in_channels, height, width = opt.image_size
-    if opt.dataset == 'FrontViewDatasetV2':
+    if 'V2' in opt.dataset:
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
