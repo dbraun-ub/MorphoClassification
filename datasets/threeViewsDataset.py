@@ -227,7 +227,7 @@ class ThreeViewsDatasetV2(Dataset):
         SD_markers = ["SD{:02d}".format(i) for i in [1,2,3,4,5,7,8,9,10,11]]
         FP_markers = ["FP{:02d}".format(i) for i in [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]]
 
-        width, heigth = self.size
+        width, height = self.size
 
         img_FA = self.center_crop_resize(img_FA, (int(0.375 * width), height), FA_markers, item)
         img_SD = self.center_crop_resize(img_SD, (int(0.25 * width), height), SD_markers, item)
