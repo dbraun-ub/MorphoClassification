@@ -142,7 +142,7 @@ class ThreeViewsDatasetV2(Dataset):
 
         c_x = (np.max(x) + np.min(x)) / 2
         
-        target_width, target_height = size
+        target_height, target_width = size
         aspect_ratio = target_width / target_height
         width, height = img.size
         c_y = height // 2
@@ -183,14 +183,14 @@ class ThreeViewsDatasetV2(Dataset):
         image2 = image2.resize((new_width2, desired_height), Image.LANCZOS)
         image3 = image3.resize((new_width3, desired_height), Image.LANCZOS)
 
-        if self.transform:
-            image1 = self.transform(image1)
-            image2 = self.transform(image2)
-            image3 = self.transform(image3)
-            topil = transforms.ToPILImage()
-            image1 = topil(image1)
-            image2 = topil(image2)
-            image3 = topil(image3)
+        # if self.transform:
+        #     image1 = self.transform(image1)
+        #     image2 = self.transform(image2)
+        #     image3 = self.transform(image3)
+        #     topil = transforms.ToPILImage()
+        #     image1 = topil(image1)
+        #     image2 = topil(image2)
+        #     image3 = topil(image3)
 
         # Create a new image with the calculated dimensions
         concatenated_image = Image.new("RGB", (new_width1 + new_width2 + new_width3, desired_height))
