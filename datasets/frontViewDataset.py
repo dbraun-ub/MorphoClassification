@@ -82,7 +82,7 @@ class FrontViewDatasetV2(Dataset):
     
     @staticmethod
     def center_crop_resize(img, size, center):
-        target_height, target_width = size
+        target_width, target_height = size
         aspect_ratio = target_width / target_height
         width, height = img.size
         

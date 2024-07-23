@@ -142,7 +142,7 @@ class ThreeViewsDatasetV2(Dataset):
 
         c_x = (np.max(x) + np.min(x)) / 2
         
-        target_height, target_width = size
+        target_width, target_height = size
         aspect_ratio = target_width / target_height
         width, height = img.size
         c_y = height // 2
