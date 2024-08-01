@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import torch
 
 
 def merge_df_with_markers(df_morpho, split_path='splits/'):
@@ -60,3 +61,24 @@ class EarlyStopping:
         else:
             self.best_loss = val_loss
             self.counter = 0
+
+def set_device(opt_device):
+    # device = torch.device("cpu")
+    if opt_device == "cuda":
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            print("cuda is not available")
+            device = torch.device("cpu")
+    elif opt_device == "xpu":
+        import intel_extension_for_pytorch as ipex
+        if ipex.xpu.is_available():
+            device = "xpu"
+        else:
+            opt_device = "cpu"
+            print("xpu is not available")
+            device = torch.device("cpu")
+    else:
+        device = torch.device("cpu")
+
+    return device

@@ -9,7 +9,7 @@ from datasets import ThreeViewsDataset, FrontViewDataset, FrontViewDatasetV2, Th
 import timm
 import pandas as pd
 import numpy as np
-from utils import merge_df_with_markers, EarlyStopping
+import utils
 
 from timm.data.transforms_factory import create_transform
 from torch.utils.tensorboard import SummaryWriter
@@ -20,7 +20,8 @@ from options import options
 def validation_step(model, criterion, val_loader, device):
     model.eval()
     model.to(device)
-    if opt.device == "xpu":
+    if device == torch.device("xpu"):
+        import intel_extension_for_pytorch as ipex
         model = ipex.optimize(model, dtype=torch.float32)
     val_loss = 0
     correct = 0
@@ -56,23 +57,7 @@ def train(opt):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False  # Disable cudnn's auto-tuner for reproducible results
 
-    # device = torch.device("cpu")
-    if opt.device == "cuda":
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-        else:
-            print("cuda is not available")
-            device = torch.device("cpu")
-    elif opt.device == "xpu":
-        import intel_extension_for_pytorch as ipex
-        if ipex.xpu.is_available():
-            device = "xpu"
-        else:
-            opt.device = "cpu"
-            print("xpu is not available")
-            device = torch.device("cpu")
-    else:
-        device = torch.device("cpu")
+    device = utils.set_device(opt.device)
 
     print(f"Using device: {device}")
 
@@ -104,8 +89,8 @@ def train(opt):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
-        train_file_list = merge_df_with_markers(train_df, opt.split_path)
-        val_file_list = merge_df_with_markers(val_df, opt.split_path)
+        train_file_list = utils.merge_df_with_markers(train_df, opt.split_path)
+        val_file_list = utils.merge_df_with_markers(val_df, opt.split_path)
 
         train_dataset = MyDataset(train_file_list, opt.data_path, (width, height), transform, num_classes=opt.num_classes)
         val_dataset   = MyDataset(val_file_list, opt.data_path, (width, height), transform, num_classes=opt.num_classes)
@@ -161,7 +146,7 @@ def train(opt):
     writer = SummaryWriter(log_dir=os.path.join(opt.log_path, opt.log_name))
 
     # Initialize early stopping
-    early_stopping = EarlyStopping(patience=opt.earlyStopping_patience, min_delta=opt.earlyStopping_min_delta)
+    early_stopping = utils.EarlyStopping(patience=opt.earlyStopping_patience, min_delta=opt.earlyStopping_min_delta)
 
     
     unfreeze_step = 0
