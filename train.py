@@ -9,31 +9,13 @@ from datasets import ThreeViewsDataset, FrontViewDataset, FrontViewDatasetV2, Th
 import timm
 import pandas as pd
 import numpy as np
+from utils import merge_df_with_markers, EarlyStopping
 
 from timm.data.transforms_factory import create_transform
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
 import torchvision.utils as vutils
 from options import options
-
-class EarlyStopping:
-    def __init__(self, patience=5, min_delta=0):
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.best_loss = None
-        self.early_stop = False
-
-    def __call__(self, val_loss):
-        if self.best_loss is None:
-            self.best_loss = val_loss
-        elif val_loss > self.best_loss - self.min_delta:
-            self.counter += 1
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_loss = val_loss
-            self.counter = 0
 
 def validation_step(model, criterion, val_loader, device):
     model.eval()
@@ -64,31 +46,6 @@ def validation_step(model, criterion, val_loader, device):
     val_accuracy = 100 * correct / total
 
     return val_loss, val_accuracy
-
-def merge_df_with_markers(df_morpho):
-    filename = os.path.join(opt.split_path, 'coordinates_Batch1.txt')
-    df_marqueurs = pd.read_csv(filename)
-    df2 = df_marqueurs[['patient_id', 'marker', 'x_pix', 'y_pix']]
-    df2 = df2[~df2['marker'].str.startswith('SV')]
-    df2 = df2[~df2['marker'].str.startswith('FAC')]
-    df2 = df2[~df2['marker'].str.startswith('SDC')]
-    df2 = df2[~df2['marker'].str.startswith('FPC')]
-
-    # Drop duplicates based on the new column
-    df2['patient_marker'] = df2['patient_id'].astype(str) + '_' + df2['marker']
-    df2 = df2.drop_duplicates(subset='patient_marker', keep='first').reset_index(drop=True)
-
-    # Drop the patient_marker column if it's no longer needed
-    df2 = df2.drop(columns=['patient_marker'])
-
-    df_pivot = df2.pivot(index='patient_id', columns='marker', values=['x_pix', 'y_pix'])
-    df_pivot.columns = ['_'.join(col).strip() for col in df_pivot.columns.values]
-    df_pivot.reset_index(inplace=True)
-
-    df = pd.merge(df_morpho, df_pivot, on='patient_id', how='left')
-
-    return df
-
 
 
 def train(opt):
@@ -147,8 +104,8 @@ def train(opt):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
-        train_file_list = merge_df_with_markers(train_df)
-        val_file_list = merge_df_with_markers(val_df)
+        train_file_list = merge_df_with_markers(train_df, opt.split_path)
+        val_file_list = merge_df_with_markers(val_df, opt.split_path)
 
         train_dataset = MyDataset(train_file_list, opt.data_path, (width, height), transform, num_classes=opt.num_classes)
         val_dataset   = MyDataset(val_file_list, opt.data_path, (width, height), transform, num_classes=opt.num_classes)
