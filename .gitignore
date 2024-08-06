@@ -6,3 +6,4 @@ __pycache__/*
 Models_Evaluation.ipynb
 .ipynb_checkpoints/options-checkpoint.json
 *.zip
+shapes_gcn/__pycache__/*
