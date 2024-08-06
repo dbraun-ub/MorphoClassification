@@ -58,16 +58,12 @@ def train(opt):
     torch.backends.cudnn.benchmark = False  # Disable cudnn's auto-tuner for reproducible results
 
     device = utils.set_device(opt.device)
-
     print(f"Using device: {device}")
 
-    
     ## Variables
     print('-'*20)
     print(opt)
     print('-'*20)
-
-
 
     ## Define your dataset
     list_datasets = {
