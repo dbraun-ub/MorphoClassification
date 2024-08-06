@@ -12,7 +12,7 @@ def options():
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate for the optimizer')
     parser.add_argument('--num_epochs', type=int, default=100, help='Number of epochs to train')
-    parser.add_argument('--train_folds', type=int, nargs='+', default=[1, 2, 3, 4, 5, 6, 7] ,help='Sizes of the layers in the model')
+    parser.add_argument('--train_folds', type=int, nargs='+', default=[0, 1, 2, 3, 4, 5, 6, 7] ,help='Sizes of the layers in the model')
     parser.add_argument('--val_folds', type=int, nargs='+', default=[8] ,help='Sizes of the layers in the model')
     parser.add_argument('--test_folds', type=int, nargs='+', default=[9] ,help='Sizes of the layers in the model')
     parser.add_argument('--split', type=str, default='full_balanced', help='Split to use for training')
