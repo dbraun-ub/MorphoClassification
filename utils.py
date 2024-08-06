@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import torch
+from typing import Dict, Text
+import yaml
 
 
 def merge_df_with_markers(df_morpho, split_path='splits/'):
@@ -12,21 +14,20 @@ def merge_df_with_markers(df_morpho, split_path='splits/'):
 
     filename = os.path.join(split_path, 'coordinates_Batch1.txt')
     df_marqueurs = pd.read_csv(filename)
-    df2 = df_marqueurs[['patient_id', 'marker', 'x_pix', 'y_pix']]
-    df2 = df2[~df2['marker'].str.startswith('SV')]
-    df2 = df2[~df2['marker'].str.startswith('FAC')]
-    df2 = df2[~df2['marker'].str.startswith('SDC')]
-    df2 = df2[~df2['marker'].str.startswith('FPC')]
+    df = df_marqueurs[['patient_id', 'marker', 'x_pix', 'y_pix']]
+
+    # remove mathematical markers
+    df = df[~df["marker"].str.contains("C|FA10|FA17|FP08|FP15|FP18|SD07")]
 
     # Drop duplicates based on the new column
-    df2['patient_marker'] = df2['patient_id'].astype(str) + '_' + df2['marker']
-    df2 = df2.drop_duplicates(subset='patient_marker', keep='first').reset_index(drop=True)
+    df['patient_marker'] = df['patient_id'].astype(str) + '_' + df['marker']
+    df = df.drop_duplicates(subset='patient_marker', keep='first').reset_index(drop=True)
 
     # Drop the patient_marker column if it's no longer needed
-    df2 = df2.drop(columns=['patient_marker'])
+    df = df.drop(columns=['patient_marker'])
 
     # Pivot table around the patient_id index, to generate columns for each marker coordinates' x and y.
-    df_pivot = df2.pivot(index='patient_id', columns='marker', values=['x_pix', 'y_pix'])
+    df_pivot = df.pivot(index='patient_id', columns='marker', values=['x_pix', 'y_pix'])
     df_pivot.columns = ['_'.join(col).strip() for col in df_pivot.columns.values]
     df_pivot.reset_index(inplace=True)
 
@@ -34,6 +35,7 @@ def merge_df_with_markers(df_morpho, split_path='splits/'):
     df = pd.merge(df_morpho, df_pivot, on='patient_id', how='left')
 
     return df
+
 
 
 class EarlyStopping:
@@ -82,3 +84,14 @@ def set_device(opt_device):
         device = torch.device("cpu")
 
     return device
+
+
+def load_config(configpath: Text) -> Dict:
+    """
+    Load the configuration files
+    configpath is the path to the config files
+    """
+    with open(configpath, "r") as file:
+        config = yaml.load(file, Loader=yaml.FullLoader)
+
+    return config
