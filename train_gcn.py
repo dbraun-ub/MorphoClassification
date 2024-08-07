@@ -8,6 +8,7 @@ from torch.optim.lr_scheduler import StepLR
 import numpy as np
 import pandas as pd
 from torch_geometric.data import DataLoader
+import copy
 
 from options import options
 import utils
@@ -39,6 +40,61 @@ def construct_graph(df, view, edges):
 
     return points, edge_index
 
+
+def validation_step(model, criterion, val_loader, device):
+    model.eval()
+    model.to(device)
+    # if device == torch.device("xpu"):
+    #     import intel_extension_for_pytorch as ipex
+    #     model = ipex.optimize(model, dtype=torch.float32)
+    val_loss = 0
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for data in val_loader:
+            data = data.to(device)
+            outputs = model(data)
+            targets = data.y
+            if opt.linear_target:
+                sigmoid = nn.Sigmoid()
+                outputs = sigmoid(outputs).squeeze(1)
+                loss = criterion(outputs, targets / (opt.num_classes - 1))
+                predicted = torch.round(outputs * (opt.num_classes - 1))
+            else:
+                loss = criterion(outputs, targets)
+                _, predicted = torch.max(outputs.data, 1)
+
+            val_loss += loss.item()
+            total += targets.size(0)
+            correct += (predicted == targets).sum().item()
+    
+    val_loss = val_loss / len(val_loader)
+    val_accuracy = 100 * correct / total
+
+    return val_loss, val_accuracy
+
+def get_loader(opt, folds, markers, global_features_mean=None, global_features_std=None):
+    df = pd.concat([pd.read_csv(os.path.join(opt.split_path, opt.split, opt.split + f'_fold_{i}.csv')) for i in folds], axis=0)
+    # markers_copy = copy.deepcopy(markers)
+
+    group_idx = np.load(os.path.join('data', 'group_clean_full_balanced_3057_0123456789.npy'), allow_pickle=True)
+    mask = [idx in df['patient_id'].values for idx in group_idx[:,0]]
+
+    df.set_index('patient_id', inplace=True)
+    df = df.loc[group_idx[mask][:,0]]
+    df.reset_index(inplace=True)
+
+    # Applya mask on maerkers to only keep values from the corresponding fold
+    # for view in markers_copy.keys():
+    #     markers_copy[view] = markers_copy[view][:,:,mask]
+
+    dataset = FrontViewMarkersDataset(markers[opt.view][:,:,mask], df, opt.view, n_classes=opt.num_classes, global_features_mean=global_features_mean, global_features_std=global_features_std)
+    loader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True)
+
+    return loader, dataset.global_features_mean, dataset.global_features_std
+
+
+
 def train_gcn(opt):
     # Set seed for reproducibility
     seed = 42
@@ -55,39 +111,16 @@ def train_gcn(opt):
     print(opt)
     print('-'*20)
 
-    ## Define your dataset (A définir)
-    # list_datasets = {
-    #     'singleView': shapes.FrontViewMarkersDataset, 
-    # } 
+    # Chargement des marqueurs calibrés
+    markers = {
+        'FA': np.load(os.path.join('data', 'proc_rotated_clean_full_balanced_FA_3057_0123456789.npy')),
+        'SD': np.load(os.path.join('data', 'proc_rotated_clean_full_balanced_SD_3057_0123456789.npy')),
+        'FP': np.load(os.path.join('data', 'proc_rotated_clean_full_balanced_FP_3057_0123456789.npy'))
+    }
 
-    # Chargement des données morphologiques
-    train_df = pd.concat([pd.read_csv(os.path.join(opt.split_path, opt.split, opt.split + f'_fold_{i}.csv')) for i in opt.train_folds], axis=0)
-    val_df   = pd.concat([pd.read_csv(os.path.join(opt.split_path, opt.split, opt.split + f'_fold_{i}.csv')) for i in opt.val_folds], axis=0)
-
-    # Chargement des marqueurs calibrés ainsi que leur id patient
-    markers_FA = np.load(os.path.join('data', 'conf_mat_clean_full_balanced_FA_3057_0123456789.npy'))
-    markers_FP = np.load(os.path.join('data', 'conf_mat_clean_full_balanced_FP_3057_0123456789.npy'))
-    markers_SD = np.load(os.path.join('data', 'conf_mat_clean_full_balanced_SD_3057_0123456789.npy'))
-    group_idx = np.load(os.path.join('data', 'group_clean_full_balanced_3057_0123456789.npy'), allow_pickle=True)
-
-    # mask listant les éléments train et val des données markers
-    train_mask = [idx in train_df['patient_id'].values for idx in group_idx[:,0]]
-    val_mask = [idx in val_df['patient_id'].values for idx in group_idx[:,0]]
-
-    train_df.set_index('patient_id', inplace=True)
-    train_df = train_df.loc[group_idx[train_mask][:,0]]
-    train_df.reset_index(inplace=True)
-
-    val_df.set_index('patient_id', inplace=True)
-    val_df = val_df.loc[group_idx[val_mask][:,0]]
-    val_df.reset_index(inplace=True)
-
-
-    train_dataset = FrontViewMarkersDataset(markers_FA[:,:,train_mask], train_df, 'FA')#, num_classes=5)
-
-    plot_graph(train_dataset[0])
-
-    train_loader = DataLoader(train_dataset, batch_size=opt.batch_size, shuffle=True)
+    train_loader, train_global_features_mean, train_global_features_std = get_loader(opt, opt.train_folds, markers)
+    val_loader, _, _ = get_loader(opt, opt.val_folds, markers, global_features_mean=train_global_features_mean, global_features_std=train_global_features_std)
+    test_loader, _, _ = get_loader(opt, opt.test_folds, markers, global_features_mean=train_global_features_mean, global_features_std=train_global_features_std)
 
     # Only work with the single viwe FA
     model = shapes.SingleViewGATv2(
@@ -108,7 +141,7 @@ def train_gcn(opt):
         running_loss = 0
         total = 0
         correct = 0
-        for batch_idx, data in enumerate(train_loader):
+        for _, data in enumerate(train_loader):
             data = data.to(device)
             optimizer.zero_grad()
             outputs = model(data)
@@ -122,66 +155,13 @@ def train_gcn(opt):
             total += data.y.size(0)
             correct += (predicted == data.y).sum().item()
 
-            # if batch_idx % 100 == 0:
-            #     print(f'Epoch [{epoch+1}/{opt.num_epochs}], Step [{batch_idx+1}/{len(train_loader)}], Loss: {loss.item()}, Acc: {100 * (predicted == data.y).sum().item() / data.y.size(0)}')
 
-        print(f'Epoch [{epoch+1}/{opt.num_epochs}], Loss: {running_loss / len(train_loader)}, Acc: {100 * correct / total}')
+        val_loss, val_accuracy = validation_step(model, criterion, val_loader, device)
+        _, test_accuracy = validation_step(model, criterion, test_loader, device)
 
-        # Step the scheduler
+        print(f'Epoch [{epoch+1}/{opt.num_epochs}], train loss: {running_loss / len(train_loader):.3f}, train acc: {100 * correct / total:.3f}, val loss: {val_loss:.3f}, val acc: {val_accuracy:.3f}, test acc: {test_accuracy:.3f}')
+
         scheduler.step()
-
-    global_features = ['gender', 'age', 'height', 'weigth', 'IMC']
-    num_global_features = len(global_features)
-
-
-    
-
-
-
-
-    # markers = {
-    #     'FA': ['FA02', 'FA04', 'FA05', 'FA06', 'FA07', 'FA08', 'FA09', 'FA11', 'FA12', 'FA13', 'FA14', 'FA15', 'FA16', 'FA18', 'FA19', 'FA20'],
-    #     'SD': ['SD01', 'SD02', 'SD03', 'SD04', 'SD05', 'SD08', 'SD09', 'SD10', 'SD11'],
-    #     'FP': ['FP03', 'FP04', 'FP05', 'FP06', 'FP07', 'FP09', 'FP10', 'FP11', 'FP12', 'FP13', 'FP14', 'FP16', 'FP17', 'FP19']
-    #     }
-
-    # view = 'FA'
-
-    # conf_mat = np.zeros([train_df.shape[0], len(markers[view]), 2])
-
-    # for i, m in enumerate(markers[view]):
-    #     conf_mat[:, i, 0] = train_df['x_pix_' + m].values
-    #     conf_mat[:, i, 1] = train_df['y_pix_' + m].values
-
-    # a = conf_mat[:5]
-    # # shapes.gpa(conf_mat[10])
-    # print(conf_mat.shape)
-    # # shapes.show(*shapes.demo_gpa(a))
-
-    # r,s,t,d = shapes.gpa(a, -1) # Rotation, scale, translation, Remanian distance
-    # D = []
-    # for i in range(len(a)):
-    #     D.append(a[i].dot(r[i]) * s[i] + t[i]) # X dot R * S + T
-    
-
-    # D = np.concatenate([D])
-
-
-    
-    # plt.figure()
-    # plt.subplot(131)
-    # plt.scatter(x=a[:,:,0],y=a[:,:,1])
-    # plt.subplot(132)
-    # plt.scatter(x=D[:,:,0],y=D[:,:,1])
-    # plt.subplot(133)
-    # Dn = D / np.linalg.norm(D, 'fro')
-    # plt.scatter(x=Dn[:,:,0],y=Dn[:,:,1])
-    # plt.show()
-
-    # Pour l'alignement des points de validation, on aligne sur la shape moyenne des données d'entrainement. Il faut donc sauvegarder cette information quelque part:
-    # r, s, t, d = opa(a[0], a[1])
-	# a[1] = a[1].dot(r) * s + t
-
 
 
 
