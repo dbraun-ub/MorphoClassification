@@ -75,7 +75,7 @@ def validation_step(model, criterion, val_loader, device):
 
 def get_loader(opt, folds, markers, global_features_mean=None, global_features_std=None):
     df = pd.concat([pd.read_csv(os.path.join(opt.split_path, opt.split, opt.split + f'_fold_{i}.csv')) for i in folds], axis=0)
-    # markers_copy = copy.deepcopy(markers)
+    markers_masked = copy.deepcopy(markers)
 
     group_idx = np.load(os.path.join('data', 'group_clean_full_balanced_3057_0123456789.npy'), allow_pickle=True)
     mask = [idx in df['patient_id'].values for idx in group_idx[:,0]]
@@ -85,10 +85,10 @@ def get_loader(opt, folds, markers, global_features_mean=None, global_features_s
     df.reset_index(inplace=True)
 
     # Applya mask on maerkers to only keep values from the corresponding fold
-    # for view in markers_copy.keys():
-    #     markers_copy[view] = markers_copy[view][:,:,mask]
+    for view in markers_masked.keys():
+        markers_masked[view] = markers_masked[view][:,:,mask]
 
-    dataset = FrontViewMarkersDataset(markers[opt.view][:,:,mask], df, opt.view, n_classes=opt.num_classes, global_features_mean=global_features_mean, global_features_std=global_features_std)
+    dataset = FrontViewMarkersDataset(markers_masked, df, opt.view, n_classes=opt.num_classes, global_features_mean=global_features_mean, global_features_std=global_features_std)
     loader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True)
 
     return loader, dataset.global_features_mean, dataset.global_features_std

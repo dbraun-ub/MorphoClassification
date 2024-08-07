@@ -88,7 +88,7 @@ class FrontViewMarkersDataset(Dataset):
                 (10,12), (12,10),
                 (12,14), (14,12)
             ]
-            # nodes = self.node_coords['FA']
+            nodes = self.node_coords['FA']
         elif self.view == 'SD':
             self.edges = [
                 (0,1), (1,0),
@@ -103,7 +103,7 @@ class FrontViewMarkersDataset(Dataset):
                 (3,4), (4,3),
                 (3,5), (5,3)
             ]
-            # nodes = self.node_coords['SD']
+            nodes = self.node_coords['SD']
         elif self.view == 'FP':
             self.edges = [
                 (0,1), (1,0),
@@ -123,7 +123,7 @@ class FrontViewMarkersDataset(Dataset):
                 (10,12), (12,10),
                 (11,13), (13,11)
             ]
-            # nodes = self.node_coords['FP']
+            nodes = self.node_coords['FP']
         else:
             print('Not implemented.')
 
@@ -135,7 +135,7 @@ class FrontViewMarkersDataset(Dataset):
             features.iloc[i+5] = (features.iloc[i+5] - self.global_features_mean[i]) / self.global_features_std[i]
         
         # Get node features and target labels
-        node_features = torch.tensor(self.node_coords[:,:,idx], dtype=torch.float)
+        node_features = torch.tensor(nodes[:,:,idx], dtype=torch.float)
         edge_index = torch.tensor(self.edges, dtype=torch.long).t().contiguous()
         global_features = torch.tensor(features.iloc[4:9], dtype=torch.float)
         target = torch.tensor(label_to_index[self.n_classes][features["morpho-1"]], dtype=torch.long)
