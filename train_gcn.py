@@ -11,8 +11,9 @@ from torch_geometric.data import DataLoader
 import copy
 from sklearn.model_selection import ParameterGrid
 from torch.utils.tensorboard import SummaryWriter
+import csv
 
-from options import options
+from options import options, save_options
 import utils
 import shapes_gcn as shapes
 from datasets import FrontViewMarkersDataset
@@ -46,9 +47,9 @@ def construct_graph(df, view, edges):
 def validation_step(model, criterion, val_loader, device):
     model.eval()
     model.to(device)
-    # if device == torch.device("xpu"):
-    #     import intel_extension_for_pytorch as ipex
-    #     model = ipex.optimize(model, dtype=torch.float32)
+    if device == torch.device("xpu"):
+        import intel_extension_for_pytorch as ipex
+        model = ipex.optimize(model, dtype=torch.float32)
     val_loss = 0
     correct = 0
     total = 0
@@ -145,11 +146,17 @@ def train_gcn(opt):
     # Initialize early stopping
     early_stopping = utils.EarlyStopping(patience=opt.earlyStopping_patience, min_delta=opt.earlyStopping_min_delta)
 
+    ## Training loop
     best_val_acc = 0
+    last_test_accuracy = 0
+    best_epoch = 0
     for epoch in range(opt.num_epochs):
         model.train()
+        if opt.device == "xpu":
+            import intel_extension_for_pytorch as ipex
+            model, optimizer = ipex.optimize(model, optimizer=optimizer, dtype=torch.float32)
+        
         model.to(device)
-
         running_loss = 0
         total = 0
         correct = 0
@@ -180,9 +187,11 @@ def train_gcn(opt):
 
         if val_accuracy > best_val_acc:
             best_val_acc = val_accuracy
+            best_epoch = epoch
             torch.save(model.state_dict(), f'runs/{opt.log_name}/model_best_acc.pth')
 
             _, test_accuracy = validation_step(model, criterion, test_loader, device)
+            last_test_accuracy = test_accuracy
 
             log_message = f'Epoch [{epoch+1}/{opt.num_epochs}], train loss: {avg_train_loss:.3f}, train acc: {train_accuracy:.3f}, val loss: {val_loss:.3f}, val acc: {val_accuracy:.3f}, test acc: {test_accuracy:.3f}'
             print(log_message)
@@ -198,16 +207,40 @@ def train_gcn(opt):
             print("Early stopping triggered")
             break
 
+    evaluation_log = [
+        opt.log_name,
+        opt.model_name,             # Model
+        last_test_accuracy,         # Accuracy
+        opt.view,                   # View
+        opt.dataset,                # dataset
+        best_epoch,                 # Best epoch
+        opt.val_folds[0],           # Val fold
+        opt.test_folds[0],          # test fold
+        opt.split,
+        opt.learning_rate,
+        opt.batch_size,
+        opt.drop_rate,
+        opt.scheduler_step_size,
+        opt.scheduler_gamma,
+        opt.num_epoch_unfreeze,
+        opt.earlyStopping_patience,
+        opt.earlyStopping_min_delta,
+        opt.num_epochs
+    ]
+    with open("runs/training_log.csv", 'a', newline='') as f:
+        write = csv.writer(f)
+        write.writerow(evaluation_log)
+
 
 
 if __name__ == '__main__':
     opt = options()
 
     param_grid = {
+        'batch_size': [64,128],
         'learning_rate': [1e-3, 1e-4],
-        'batch_size': [16,32,64,128],
         'view': ['FA', 'SD', 'FP'],
-        'scheduler_step_size': [50,100,200],
+        'scheduler_step_size': [100,200],
         'num_epochs': [200]
     }
 
@@ -220,6 +253,9 @@ if __name__ == '__main__':
         opt.model_name = 'SingleViewGATv2'
         opt.earlyStopping_patience = opt.num_epochs // 10
         opt.earlyStopping_min_delta = 1e-8
+        opt.drop_rate = 0
         opt.log_name = f"{opt.model_name}_{opt.view}_{opt.batch_size}_{opt.learning_rate}_{opt.scheduler_step_size}" 
+
+        save_options(opt)
     
         train_gcn(opt)
