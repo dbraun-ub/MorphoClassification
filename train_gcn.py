@@ -142,6 +142,9 @@ def train_gcn(opt):
     # Initialize TensorBoard writer
     writer = SummaryWriter(log_dir=os.path.join(opt.log_path, opt.log_name))
 
+    # Initialize early stopping
+    early_stopping = utils.EarlyStopping(patience=opt.earlyStopping_patience, min_delta=opt.earlyStopping_min_delta)
+
     best_val_acc = 0
     for epoch in range(opt.num_epochs):
         model.train()
@@ -189,6 +192,12 @@ def train_gcn(opt):
 
         scheduler.step()
 
+        # Check for early stopping
+        early_stopping(val_loss)
+        if early_stopping.early_stop:
+            print("Early stopping triggered")
+            break
+
 
 
 if __name__ == '__main__':
@@ -209,6 +218,8 @@ if __name__ == '__main__':
             setattr(opt, key, param[key])
 
         opt.model_name = 'SingleViewGATv2'
+        opt.earlyStopping_patience = opt.num_epochs // 10
+        opt.earlyStopping_min_delta = 1e-8
         opt.log_name = f"{opt.model_name}_{opt.view}_{opt.batch_size}_{opt.learning_rate}_{opt.scheduler_step_size}" 
     
         train_gcn(opt)
