@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 from torch_geometric.data import DataLoader
 import copy
+from sklearn.model_selection import ParameterGrid
+from torch.utils.tensorboard import SummaryWriter
 
 from options import options
 import utils
@@ -93,6 +95,9 @@ def get_loader(opt, folds, markers, global_features_mean=None, global_features_s
 
     return loader, dataset.global_features_mean, dataset.global_features_std
 
+def log_to_file(filename, message):
+    with open(filename, 'a') as f:
+        f.write(message + '\n')
 
 
 def train_gcn(opt):
@@ -134,6 +139,10 @@ def train_gcn(opt):
     optimizer = optim.Adam(model.parameters(), lr=opt.learning_rate)
     scheduler = StepLR(optimizer, step_size=opt.scheduler_step_size, gamma=opt.scheduler_gamma)
 
+    # Initialize TensorBoard writer
+    writer = SummaryWriter(log_dir=os.path.join(opt.log_path, opt.log_name))
+
+    best_val_acc = 0
     for epoch in range(opt.num_epochs):
         model.train()
         model.to(device)
@@ -155,11 +164,28 @@ def train_gcn(opt):
             total += data.y.size(0)
             correct += (predicted == data.y).sum().item()
 
+        avg_train_loss = running_loss / len(train_loader)
+        train_accuracy = 100 * correct / total
+        
+        writer.add_scalar('Loss/train', avg_train_loss, epoch)
+        writer.add_scalar('Accuracy/train', train_accuracy, epoch)                  
 
         val_loss, val_accuracy = validation_step(model, criterion, val_loader, device)
-        _, test_accuracy = validation_step(model, criterion, test_loader, device)
 
-        print(f'Epoch [{epoch+1}/{opt.num_epochs}], train loss: {running_loss / len(train_loader):.3f}, train acc: {100 * correct / total:.3f}, val loss: {val_loss:.3f}, val acc: {val_accuracy:.3f}, test acc: {test_accuracy:.3f}')
+        writer.add_scalar('Loss/val', val_loss, epoch)
+        writer.add_scalar('Accuracy/val', val_accuracy, epoch)
+
+        if val_accuracy > best_val_acc:
+            best_val_acc = val_accuracy
+            torch.save(model.state_dict(), f'runs/{opt.log_name}/model_best_acc.pth')
+
+            _, test_accuracy = validation_step(model, criterion, test_loader, device)
+
+            log_message = f'Epoch [{epoch+1}/{opt.num_epochs}], train loss: {avg_train_loss:.3f}, train acc: {train_accuracy:.3f}, val loss: {val_loss:.3f}, val acc: {val_accuracy:.3f}, test acc: {test_accuracy:.3f}'
+            print(log_message)
+            log_to_file(f'runs/{opt.log_name}/log.txt', log_message)
+        else:
+            print(f'Epoch [{epoch+1}/{opt.num_epochs}], train loss: {avg_train_loss:.3f}, train acc: {train_accuracy:.3f}, val loss: {val_loss:.3f}, val acc: {val_accuracy:.3f}')
 
         scheduler.step()
 
@@ -167,4 +193,22 @@ def train_gcn(opt):
 
 if __name__ == '__main__':
     opt = options()
-    train_gcn(opt)
+
+    param_grid = {
+        'learning_rate': [1e-3, 1e-4],
+        'batch_size': [16,32,64,128],
+        'view': ['FA', 'SD', 'FP'],
+        'scheduler_step_size': [50,100,200],
+        'num_epochs': [200]
+    }
+
+    param_combinations = list(ParameterGrid(param_grid))
+
+    for param in param_combinations:
+        for key in param.keys():
+            setattr(opt, key, param[key])
+
+        opt.model_name = 'SingleViewGATv2'
+        opt.log_name = f"{opt.model_name}_{opt.view}_{opt.batch_size}_{opt.learning_rate}_{opt.scheduler_step_size}" 
+    
+        train_gcn(opt)
