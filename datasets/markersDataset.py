@@ -7,7 +7,7 @@ from torch_geometric.data import Data, Dataset
 
 
 class FrontViewMarkersDataset(Dataset):
-    def __init__(self, node_coords, features_df, view, transform=None, n_classes=5, global_features_mean=None, global_features_std=None):
+    def __init__(self, node_coords, features_df, view, transform=True, n_classes=5, global_features_mean=None, global_features_std=None):
         self.node_coords = node_coords
         self.features_df = features_df
         self.view = view
@@ -128,16 +128,21 @@ class FrontViewMarkersDataset(Dataset):
             print('Not implemented.')
 
         # Transform gender to boolean values M == True, F == False
-        features['gender'] = features['gender'] == 'M'
+        # features['gender'] = features['gender'] == 'M'
 
-
-        for i in range(4):
-            features.iloc[i+5] = (features.iloc[i+5] - self.global_features_mean[i]) / self.global_features_std[i]
+        global_features = [features['gender'] == 'M']
+        if self.transform:
+            for i in range(4):
+                global_features.append((features.iloc[i+5] - self.global_features_mean[i]) / self.global_features_std[i])
+        else:
+            for i in range(4):
+                global_features.append(features.iloc[i+5])
         
         # Get node features and target labels
         node_features = torch.tensor(nodes[:,:,idx], dtype=torch.float)
         edge_index = torch.tensor(self.edges, dtype=torch.long).t().contiguous()
-        global_features = torch.tensor(features.iloc[4:9], dtype=torch.float)
+        # global_features = torch.tensor(features.iloc[4:9], dtype=torch.float)
+        global_features = torch.tensor(global_features, dtype=torch.float)
         target = torch.tensor(label_to_index[self.n_classes][features["morpho-1"]], dtype=torch.long)
         
         # Create the data object
