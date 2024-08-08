@@ -28,6 +28,7 @@ def options():
     parser.add_argument('--earlyStopping_min_delta', type=float, default=0.01, help='EarlyStopping delta margin')
     parser.add_argument('--earlyStopping_patience', type=int, default=5, help='Number of epochs without improvement in the validation loss before stopping')
     parser.add_argument('--view', type=str, choices=['FA', 'SD', 'FP', 'all'], default='FA', help='Split to use for training')
+    parser.add_argument('--transform', action='store_true', help='Activate or deactivate the progressive unfreeze')
     # Loss
     parser.add_argument('--linear_target', action='store_true', help='Evaluate a linear value instead of classes')
     
