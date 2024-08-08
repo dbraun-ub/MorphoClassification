@@ -19,10 +19,10 @@ from options import options
 
 def validation_step(model, criterion, val_loader, device):
     model.eval()
-    model.to(device)
     if device == torch.device("xpu"):
         import intel_extension_for_pytorch as ipex
         model = ipex.optimize(model, dtype=torch.float32)
+    model.to(device)
     val_loss = 0
     correct = 0
     total = 0
