@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
 import pandas as pd
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 import copy
 from sklearn.model_selection import ParameterGrid
 from torch.utils.tensorboard import SummaryWriter
@@ -76,7 +76,7 @@ def validation_step(model, criterion, val_loader, device):
 
     return val_loss, val_accuracy
 
-def get_loader(opt, folds, markers, global_features_mean=None, global_features_std=None):
+def get_loader(opt, folds, markers, global_features_mean=None, global_features_std=None, visualize=True):
     df = pd.concat([pd.read_csv(os.path.join(opt.split_path, opt.split, opt.split + f'_fold_{i}.csv')) for i in folds], axis=0)
     markers_masked = copy.deepcopy(markers)
 
@@ -91,8 +91,11 @@ def get_loader(opt, folds, markers, global_features_mean=None, global_features_s
     for view in markers_masked.keys():
         markers_masked[view] = markers_masked[view][:,:,mask]
 
-    dataset = FrontViewMarkersDataset(markers_masked, df, opt.view, n_classes=opt.num_classes, global_features_mean=global_features_mean, global_features_std=global_features_std)
+    dataset = FrontViewMarkersDataset(markers_masked, df, opt.view, n_classes=opt.num_classes, transform=opt.transform, global_features_mean=global_features_mean, global_features_std=global_features_std)
     loader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True)
+
+    if visualize:
+        plot_graph(dataset[0])
 
     return loader, dataset.global_features_mean, dataset.global_features_std
 
@@ -225,7 +228,9 @@ def train_gcn(opt):
         opt.num_epoch_unfreeze,
         opt.earlyStopping_patience,
         opt.earlyStopping_min_delta,
-        opt.num_epochs
+        opt.num_epochs,
+        opt.transform,
+        opt.num_classes
     ]
     with open("runs/training_log.csv", 'a', newline='') as f:
         write = csv.writer(f)
@@ -237,16 +242,21 @@ if __name__ == '__main__':
     opt = options()
 
     param_grid = {
-        'batch_size': [64,128],
-        'learning_rate': [1e-3, 1e-4],
+        'batch_size': [16,64],
+        'learning_rate': [1e-2],
         'view': ['FA', 'SD', 'FP'],
-        'scheduler_step_size': [100,200],
-        'num_epochs': [200]
+        'scheduler_step_size': [50,100,200],
+        'num_epochs': [200],
+        'transform': [True],
+        'num_classes': [3],
+        'split': ['full_balanced_3_classes'],
     }
+
+
 
     param_combinations = list(ParameterGrid(param_grid))
 
-    for param in param_combinations:
+    for i, param in enumerate(param_combinations):
         for key in param.keys():
             setattr(opt, key, param[key])
 
@@ -254,7 +264,7 @@ if __name__ == '__main__':
         opt.earlyStopping_patience = opt.num_epochs // 10
         opt.earlyStopping_min_delta = 1e-8
         opt.drop_rate = 0
-        opt.log_name = f"{opt.model_name}_{opt.view}_{opt.batch_size}_{opt.learning_rate}_{opt.scheduler_step_size}" 
+        opt.log_name = f"{opt.model_name}_{opt.view}_{opt.batch_size}_{opt.learning_rate}_{opt.scheduler_step_size}_{opt.transform}_{opt.num_classes}_{opt.split}" 
 
         save_options(opt)
     
