@@ -12,12 +12,45 @@ import copy
 from sklearn.model_selection import ParameterGrid
 from torch.utils.tensorboard import SummaryWriter
 import csv
+from torch_geometric.utils import to_networkx
 
 from options import options, save_options
 import utils
 import shapes_gcn as shapes
-from datasets import FrontViewMarkersDataset
+from datasets import FrontViewMarkersDataset, Markers3dDataset
 from preprocess_utils import plot_graph
+
+def plot_graph_3d(data):
+    # Convert to NetworkX graph
+    G = to_networkx(data)
+
+    # Create a 3D subplot
+    fig = plt.figure(figsize=(16, 8))
+    ax = fig.add_subplot(122, projection='3d')
+
+    # Extract positions from the data (assuming data.x has 3D coordinates)
+    pos = {node: data.x[node].tolist() for node in G.nodes()}
+
+    # Draw the graph
+    for edge in G.edges():
+        x_coords = [-pos[edge[0]][0], -pos[edge[1]][0]]
+        y_coords = [pos[edge[0]][1], pos[edge[1]][1]]
+        z_coords = [pos[edge[0]][2], pos[edge[1]][2]]
+        ax.plot(x_coords, z_coords, y_coords, color='black')
+
+    # Draw the nodes
+    xs, ys, zs = zip(*[pos[node] for node in G.nodes()])
+    ax.scatter(-np.array(xs), zs, ys, s=100)
+
+    # Label the nodes
+    for node in G.nodes():
+        ax.text(-pos[node][0], pos[node][2], pos[node][1], str(node), size=10, zorder=1)
+
+    # ax.invert_zaxis()  # Optional: invert z-axis if needed
+
+    ax.set_aspect('equal')
+    # Set the view orientation
+    ax.view_init(elev=20, azim=110)
 
 def construct_graph(df, view, edges):
     # Step 1: Graph Construction
@@ -76,11 +109,11 @@ def validation_step(model, criterion, val_loader, device):
 
     return val_loss, val_accuracy
 
-def get_loader(opt, folds, markers, global_features_mean=None, global_features_std=None, visualize=True):
+def get_loader(opt, folds, markers, global_features_mean=None, global_features_std=None, visualize=False, datasetClass=FrontViewMarkersDataset):
     df = pd.concat([pd.read_csv(os.path.join(opt.split_path, opt.split, opt.split + f'_fold_{i}.csv')) for i in folds], axis=0)
     markers_masked = copy.deepcopy(markers)
 
-    group_idx = np.load(os.path.join('data', 'group_clean_full_balanced_3057_0123456789.npy'), allow_pickle=True)
+    group_idx = np.load(os.path.join('data', 'group_clean_full_balanced_3565_0123456789.npy'), allow_pickle=True)
     mask = [idx in df['patient_id'].values for idx in group_idx[:,0]]
 
     df.set_index('patient_id', inplace=True)
@@ -91,11 +124,14 @@ def get_loader(opt, folds, markers, global_features_mean=None, global_features_s
     for view in markers_masked.keys():
         markers_masked[view] = markers_masked[view][:,:,mask]
 
-    dataset = FrontViewMarkersDataset(markers_masked, df, opt.view, n_classes=opt.num_classes, transform=opt.transform, global_features_mean=global_features_mean, global_features_std=global_features_std)
+    dataset = datasetClass(markers_masked, df, opt.view, n_classes=opt.num_classes, transform=opt.transform, global_features_mean=global_features_mean, global_features_std=global_features_std)
     loader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True)
 
     if visualize:
-        plot_graph(dataset[0])
+        if dataset[0].x.shape[1] == 2: 
+            plot_graph(dataset[0])
+        else:
+            plot_graph_3d(dataset[0])
 
     return loader, dataset.global_features_mean, dataset.global_features_std
 
@@ -122,22 +158,36 @@ def train_gcn(opt):
 
     # Chargement des marqueurs calibrés
     markers = {
-        'FA': np.load(os.path.join('data', 'proc_rotated_clean_full_balanced_FA_3057_0123456789.npy')),
-        'SD': np.load(os.path.join('data', 'proc_rotated_clean_full_balanced_SD_3057_0123456789.npy')),
-        'FP': np.load(os.path.join('data', 'proc_rotated_clean_full_balanced_FP_3057_0123456789.npy'))
+        'FA': np.load(os.path.join('data', 'proc_rotated_clean_full_balanced_FA_3565_0123456789.npy')),
+        'SD': np.load(os.path.join('data', 'proc_rotated_clean_full_balanced_SD_3565_0123456789.npy')),
+        'FP': np.load(os.path.join('data', 'proc_rotated_clean_full_balanced_FP_3565_0123456789.npy'))
     }
 
-    train_loader, train_global_features_mean, train_global_features_std = get_loader(opt, opt.train_folds, markers)
-    val_loader, _, _ = get_loader(opt, opt.val_folds, markers, global_features_mean=train_global_features_mean, global_features_std=train_global_features_std)
-    test_loader, _, _ = get_loader(opt, opt.test_folds, markers, global_features_mean=train_global_features_mean, global_features_std=train_global_features_std)
+    if opt.view[0] == '3d':
+        train_loader, train_global_features_mean, train_global_features_std = get_loader(opt, opt.train_folds, markers, datasetClass=Markers3dDataset, visualize=False)
+        val_loader, _, _ = get_loader(opt, opt.val_folds, markers, global_features_mean=train_global_features_mean, global_features_std=train_global_features_std,datasetClass=Markers3dDataset, visualize=False)
+        test_loader, _, _ = get_loader(opt, opt.test_folds, markers, global_features_mean=train_global_features_mean, global_features_std=train_global_features_std,datasetClass=Markers3dDataset, visualize=False)
 
-    # Only work with the single viwe FA
-    model = shapes.SingleViewGATv2(
-        num_node_features=2, # x,y
-        num_global_features=5,
-        hidden_channels=64,
-        num_classes=opt.num_classes
-    ).to(device)
+        model = shapes.SingleViewGATv2(
+            num_node_features=3, # x,y,z
+            num_global_features=5,
+            hidden_channels=64,
+            num_classes=opt.num_classes
+        ).to(device)
+    else:
+        train_loader, train_global_features_mean, train_global_features_std = get_loader(opt, opt.train_folds, markers, datasetClass=FrontViewMarkersDataset, visualize=False)
+        val_loader, _, _ = get_loader(opt, opt.val_folds, markers, global_features_mean=train_global_features_mean, global_features_std=train_global_features_std,datasetClass=FrontViewMarkersDataset, visualize=False)
+        test_loader, _, _ = get_loader(opt, opt.test_folds, markers, global_features_mean=train_global_features_mean, global_features_std=train_global_features_std,datasetClass=FrontViewMarkersDataset, visualize=False)
+
+        model = shapes.SingleViewGATv2(
+            num_node_features=2, # x,y
+            num_global_features=5,
+            hidden_channels=64,
+            num_classes=opt.num_classes
+        ).to(device)
+
+ 
+    
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=opt.learning_rate)
@@ -153,6 +203,7 @@ def train_gcn(opt):
     best_val_acc = 0
     last_test_accuracy = 0
     best_epoch = 0
+    list_val_accuracy = []
     for epoch in range(opt.num_epochs):
         model.train()
         if opt.device == "xpu":
@@ -185,18 +236,36 @@ def train_gcn(opt):
 
         val_loss, val_accuracy = validation_step(model, criterion, val_loader, device)
 
+        list_val_accuracy.append(val_accuracy)
+        # mean_weights = np.exp(-np.array([4,3,2,1,0])**2 / 10) # Gaussian
+        # mean_weights /= np.sum(mean_weights)
+        # sliding_val_accuracy = list_val_accuracy[max(0, epoch-4):epoch+1]
+        # mean_val_accuracy = np.mean(sliding_val_accuracy * mean_weights[-len(sliding_val_accuracy):])
+
+        
+
         writer.add_scalar('Loss/val', val_loss, epoch)
         writer.add_scalar('Accuracy/val', val_accuracy, epoch)
 
-        if val_accuracy > best_val_acc:
-            best_val_acc = val_accuracy
+        
+        mean_val_accuracy = val_accuracy
+        # mean_val_accuracy = (test_accuracy + val_accuracy) / 2
+
+        if (mean_val_accuracy > best_val_acc) or ((mean_val_accuracy == best_val_acc) and (val_loss < best_val_loss)):
+            best_val_acc = mean_val_accuracy
+            best_val_loss = val_loss
             best_epoch = epoch
             torch.save(model.state_dict(), f'runs/{opt.log_name}/model_best_acc.pth')
 
-            _, test_accuracy = validation_step(model, criterion, test_loader, device)
+            test_loss, test_accuracy = validation_step(model, criterion, test_loader, device)
+
+            last_test_loss = test_loss
             last_test_accuracy = test_accuracy
 
-            log_message = f'Epoch [{epoch+1}/{opt.num_epochs}], train loss: {avg_train_loss:.3f}, train acc: {train_accuracy:.3f}, val loss: {val_loss:.3f}, val acc: {val_accuracy:.3f}, test acc: {test_accuracy:.3f}'
+            # last_test_loss, last_test_accuracy = validation_step(model, criterion, test_loader, device)
+            # last_test_accuracy = test_accuracy
+
+            log_message = f'Epoch [{epoch+1}/{opt.num_epochs}], train loss: {avg_train_loss:.3f}, train acc: {train_accuracy:.3f}, val loss: {val_loss:.3f}, val acc: {val_accuracy:.3f}, test loss: {last_test_loss:.3f}, test acc: {last_test_accuracy:.3f}'
             print(log_message)
             log_to_file(f'runs/{opt.log_name}/log.txt', log_message)
         else:
@@ -213,8 +282,11 @@ def train_gcn(opt):
     evaluation_log = [
         opt.log_name,
         opt.model_name,             # Model
+        best_val_loss,
+        best_val_acc,    
+        last_test_loss,
         last_test_accuracy,         # Accuracy
-        opt.view,                   # View
+        '-'.join(opt.view),                   # View
         opt.dataset,                # dataset
         best_epoch,                 # Best epoch
         opt.val_folds[0],           # Val fold
@@ -230,7 +302,8 @@ def train_gcn(opt):
         opt.earlyStopping_min_delta,
         opt.num_epochs,
         opt.transform,
-        opt.num_classes
+        opt.num_classes,
+        'gaus-val-loss'
     ]
     with open("runs/training_log.csv", 'a', newline='') as f:
         write = csv.writer(f)
@@ -242,14 +315,17 @@ if __name__ == '__main__':
     opt = options()
 
     param_grid = {
-        'batch_size': [16,64],
-        'learning_rate': [1e-2],
-        'view': ['FA', 'SD', 'FP'],
-        'scheduler_step_size': [50,100,200],
+        'batch_size': [16,32,64,96,128],
+        'learning_rate': [1e-3],
+        'view': [['3d'], ['FA', 'SD', 'FP'], ['FA', 'SD'], ['FA', 'FP'], ['SD', 'FP'], ['SD'], ['FP'], ['FA']],
+        'scheduler_step_size': [200],
         'num_epochs': [200],
         'transform': [True],
         'num_classes': [3],
         'split': ['full_balanced_3_classes'],
+        'val_folds': [[4],[5],[6],[7]],
+        'test_folds': [[9]],
+        'train_folds': [[0,1,2,3,5,6,7,8],[0,1,2,3,4,6,7,8],[0,1,2,3,4,5,7,8],[0,1,2,3,4,5,6,8]]
     }
 
 
@@ -257,6 +333,7 @@ if __name__ == '__main__':
     param_combinations = list(ParameterGrid(param_grid))
 
     for i, param in enumerate(param_combinations):
+        skip_iteration = False
         for key in param.keys():
             setattr(opt, key, param[key])
 
@@ -264,7 +341,25 @@ if __name__ == '__main__':
         opt.earlyStopping_patience = opt.num_epochs // 10
         opt.earlyStopping_min_delta = 1e-8
         opt.drop_rate = 0
-        opt.log_name = f"{opt.model_name}_{opt.view}_{opt.batch_size}_{opt.learning_rate}_{opt.scheduler_step_size}_{opt.transform}_{opt.num_classes}_{opt.split}" 
+        opt.log_name = f"{opt.model_name}_{'-'.join(opt.view)}_{opt.batch_size}_{opt.learning_rate}_{opt.scheduler_step_size}_{opt.transform}_{opt.num_classes}_{opt.split}_{opt.val_folds[0]}_{opt.test_folds[0]}" 
+
+        if os.path.exists(os.path.join('runs', opt.log_name)):
+            print(f'folder "{opt.log_name}" already exist.')
+            continue
+
+        for item in opt.val_folds:
+            if (item in opt.train_folds) or (item in opt.test_folds):
+                skip_iteration = True
+                break
+
+        for item in opt.test_folds:
+            if (item in opt.train_folds) or (item in opt.val_folds):
+                skip_iteration = True
+                break
+
+        if skip_iteration:
+            print("skip iteration")
+            continue
 
         save_options(opt)
     

@@ -1,3 +1,3 @@
 from .threeViewsDataset import ThreeViewsDataset, ThreeViewsDatasetV2
 from .frontViewDataset import FrontViewDataset, FrontViewDatasetV2
-from .markersDataset import FrontViewMarkersDataset
+from .markersDataset import FrontViewMarkersDataset, Markers3dDataset
