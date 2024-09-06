@@ -5,37 +5,20 @@ import torch
 import pandas as pd
 from torch_geometric.data import Data, Dataset
 from sklearn.linear_model import LinearRegression
+from torch_geometric.data.data import BaseData
 
 
-class FrontViewMarkersDataset(Dataset):
-    def __init__(self, node_coords, features_df, view, transform=True, n_classes=5, global_features_mean=None, global_features_std=None):
+class MarkersDataset(Dataset):
+    def __init__(self, node_coords, features_df, transform=True, n_classes=5, global_features_mean=None, global_features_std=None, weight_index=False):
         self.node_coords = node_coords
         self.features_df = features_df
-        self.view = view
         self.transform = transform
         self.n_classes = n_classes
         self.global_features_mean = global_features_mean
         self.global_features_std = global_features_std
-        
-        if (self.global_features_mean is None) or (self.global_features_std is None):
-            self.preprocess_global_features()
-    
-    def preprocess_global_features(self):
-        self.global_features_mean = []
-        self.global_features_std = []
-        for i in range(4):
-            self.global_features_mean.append(np.mean(self.features_df.iloc[:, i+5]))
-            self.global_features_std.append(np.std(self.features_df.iloc[:, i+5]))
+        self.weight_index = weight_index
 
-
-    def __len__(self):
-        return len(self.features_df)
-    
-    def __getitem__(self, idx):
-        features = self.features_df.loc[idx]
-
-
-        label_to_index = {
+        self.label_to_index = {
             5:{
                 'ecto': 0, 
                 'ecto-meso': 1,
@@ -50,143 +33,17 @@ class FrontViewMarkersDataset(Dataset):
             }
         }
 
-        # if self.view == 'FA':
-        #     self.edges = [
-        #         (0,1), (1,0), 
-        #         (1,3), (3,1),
-        #         (2,3), (3,2),
-        #         (2,6), (6,2),
-        #         (2,8), (8,2),
-        #         (3,4), (4,3), 
-        #         (3,5), (5,3),
-        #         (4,9), (9,4),
-        #         (4,7), (7,4),
-        #         (5,6), (6,5),
-        #         (5,7), (7,5),
-        #         (6,7), (7,6),
-        #         (6,10), (10,6),
-        #         (7,11), (11,7), 
-        #         (11,13), (13,11),
-        #         (13,15), (15,13),
-        #         (10,12), (12,10),
-        #         (12,14), (14,12)
-        #     ]
-        num_nodes = 0
-        nodes = None
-        if 'FA' in self.view or 'all' in self.view:
-            edges = [
-                (0,1), (1,0), 
-                (1,3), (3,1),
-                (2,3), (3,2),
-                (2,8), (8,2),
-                (3,4), (4,3), 
-                (3,5), (5,3),
-                (4,9), (9,4),
-                (5,6), (6,5),
-                (5,7), (7,5),
-                (6,10), (10,6),
-                (7,11), (11,7), 
-                (11,13), (13,11),
-                (13,15), (15,13),
-                (10,12), (12,10),
-                (12,14), (14,12)
-            ]
-            np_edges = np.array(edges)
-            nodes = self.node_coords['FA']
-            num_nodes = len(nodes)
+        # clean unused dataframe data
+        if 'morpho1_gender' in self.features_df.columns:
+            self.features_df = self.features_df.drop(columns=['morpho1_gender'])
 
-        if 'SD' in self.view or 'all' in self.view:
-            edges = [
-                (0,1), (1,0),
-                (0,3), (0,3),
-                (1,2), (2,1),
-                (2,3), (3,2),
-                (4,5), (5,4),
-                (4,6), (6,4),
-                (5,6), (6,5),
-                (6,7), (7,6),
-                (7,8), (8,7),
-                (3,4), (4,3),
-                (3,5), (5,3)
-            ]
+        # replace IMC with corpulence index
+        if weight_index:
+            # corpulence index = kg / m^3
+            self.features_df["IMC"] = self.features_df["weight_kg"] / (self.features_df["height_cm"]/100)**3
 
-            if num_nodes == 0:
-                np_edges = np.array(edges)
-                nodes = self.node_coords['SD']
-            else:
-                np_edges = np.concatenate([np_edges, np.array(edges) + num_nodes])
-                nodes = np.concatenate([nodes, self.node_coords['SD']])
-            num_nodes = len(nodes)
-
-        if 'FP' in self.view or 'all' in self.view:
-            edges = [
-                (0,1), (1,0),
-                (0,2), (2,0),
-                (0,3), (3,0),
-                (1,3), (3,1),
-                (1,6), (6,1),
-                (2,3), (3,2),
-                (2,7), (7,2),
-                (3,4), (4,3),
-                (3,5), (5,3),
-                (4,5), (5,4),
-                (4,8), (8,4),
-                (5,9), (9,5),
-                (8,10), (10,8),
-                (9,11), (11,9),
-                (10,12), (12,10),
-                (11,13), (13,11)
-            ]
-
-            if num_nodes == 0:
-                np_edges = np.array(edges)
-                nodes = self.node_coords['FP']
-            else:
-                np_edges = np.concatenate([np_edges, np.array(edges) + num_nodes])
-                nodes = np.concatenate([nodes, self.node_coords['FP']])
-
-            num_nodes = len(nodes)
-
-
-        # Transform gender to boolean values M == True, F == False
-        # features['gender'] = features['gender'] == 'M'
-
-        global_features = [features['gender'] == 'M']
-        if self.transform:
-            for i in range(4):
-                global_features.append((features.iloc[i+5] - self.global_features_mean[i]) / self.global_features_std[i])
-        else:
-            for i in range(4):
-                global_features.append(features.iloc[i+5])
-        
-        # Get node features and target labels
-        node_features = torch.tensor(nodes[:,:,idx], dtype=torch.float)
-        edge_index = torch.tensor(np_edges, dtype=torch.long).t().contiguous()
-        # global_features = torch.tensor(features.iloc[4:9], dtype=torch.float)
-        global_features = torch.tensor(global_features, dtype=torch.float)
-        target = torch.tensor(label_to_index[self.n_classes][features["morpho-1"]], dtype=torch.long)
-        
-        # Create the data object
-        data = Data(x=node_features, edge_index=edge_index, y=target)
-        data.global_features = global_features.unsqueeze(0)
-
-        return data
-
-
-
-class Markers3dDataset(Dataset):
-    def __init__(self, node_coords, features_df, view, transform=True, n_classes=5, global_features_mean=None, global_features_std=None):
-        self.node_coords = node_coords
-        self.features_df = features_df
-        self.transform = transform
-        self.n_classes = n_classes
-        self.global_features_mean = global_features_mean
-        self.global_features_std = global_features_std
-        
         if (self.global_features_mean is None) or (self.global_features_std is None):
             self.preprocess_global_features()
-
-        # self.process_3d_graph()
     
     def preprocess_global_features(self):
         self.global_features_mean = []
@@ -194,6 +51,120 @@ class Markers3dDataset(Dataset):
         for i in range(4):
             self.global_features_mean.append(np.mean(self.features_df.iloc[:, i+5]))
             self.global_features_std.append(np.std(self.features_df.iloc[:, i+5]))
+    
+    def construct_data(self, features, nodes, edges):
+        global_features = [features['gender'] == 'M']
+        if self.transform:
+            for i in range(4):
+                global_features.append((features.iloc[i+5] - self.global_features_mean[i]) / self.global_features_std[i])
+        else:
+            for i in range(4):
+                global_features.append(features.iloc[i+5])
+
+        # Get node features and target labels
+        node_features = torch.tensor(nodes, dtype=torch.float)
+        edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous()
+        global_features = torch.tensor(global_features, dtype=torch.float)
+        target = torch.tensor(self.label_to_index[self.n_classes][features["morpho-1"]], dtype=torch.long)
+        
+        # Create the data object
+        data = Data(x=node_features, edge_index=edge_index, y=target)
+        data.global_features = global_features.unsqueeze(0)
+
+        return data
+    
+    def __len__(self):
+        return len(self.features_df)
+
+    def __getitem__(self):
+        return NotImplementedError("Subclass must implement __getitem__ method")
+
+
+
+class FrontViewMarkersDataset(MarkersDataset):
+    def __init__(self, node_coords, features_df, view, transform=True, n_classes=5, global_features_mean=None, global_features_std=None, weight_index=False):
+        super().__init__(node_coords, features_df, transform, n_classes, global_features_mean, global_features_std, weight_index)
+        self.views = view
+        if 'all' in self.views:
+            self.views = ['FA', 'SD', 'FP']
+
+    def aggregate_nodes_edges(self, edges):
+        nodes = None
+        for view in self.views:
+            if nodes is None:
+                nodes = self.node_coords[view]
+                np_edges = np.array(edges[view])
+            else:
+                num_nodes = len(nodes)
+                nodes = np.concatenate([nodes, self.node_coords[view]])
+                np_edges = np.concatenate([np_edges, np.array(edges[view]) + num_nodes])
+
+        return nodes, np_edges
+    
+    def __getitem__(self, idx):
+        features = self.features_df.loc[idx]
+
+        nodes = None
+        np_edges = None
+        edges = {'FA':[
+                    (0,1), (1,0), 
+                    (1,3), (3,1),
+                    (2,3), (3,2),
+                    (2,8), (8,2),
+                    (3,4), (4,3), 
+                    (3,5), (5,3),
+                    (4,9), (9,4),
+                    (5,6), (6,5),
+                    (5,7), (7,5),
+                    (6,10), (10,6),
+                    (7,11), (11,7), 
+                    (11,13), (13,11),
+                    (13,15), (15,13),
+                    (10,12), (12,10),
+                    (12,14), (14,12)
+                ],
+                'SD':[
+                    (0,1), (1,0),
+                    (0,3), (0,3),
+                    (1,2), (2,1),
+                    (2,3), (3,2),
+                    (4,5), (5,4),
+                    (4,6), (6,4),
+                    (5,6), (6,5),
+                    (6,7), (7,6),
+                    (7,8), (8,7),
+                    (3,4), (4,3),
+                    (3,5), (5,3)
+                ],
+                'FP':[
+                    (0,1), (1,0),
+                    (0,2), (2,0),
+                    (0,3), (3,0),
+                    (1,3), (3,1),
+                    (1,6), (6,1),
+                    (2,3), (3,2),
+                    (2,7), (7,2),
+                    (3,4), (4,3),
+                    (3,5), (5,3),
+                    (4,5), (5,4),
+                    (4,8), (8,4),
+                    (5,9), (9,5),
+                    (8,10), (10,8),
+                    (9,11), (11,9),
+                    (10,12), (12,10),
+                    (11,13), (13,11)
+                ]}
+        
+        nodes, np_edges = self.aggregate_nodes_edges(edges)
+
+        data = self.construct_data(features, nodes[:,:,idx], np_edges)
+        return data
+
+
+
+class Markers3dDataset(MarkersDataset):
+    def __init__(self, node_coords, features_df, view, transform=True, n_classes=5, global_features_mean=None, global_features_std=None, weight_index=False):
+        super().__init__(node_coords, features_df, transform, n_classes, global_features_mean, global_features_std, weight_index)
 
     def process_3d_graph(self, idx):
         # Extract coordonates
@@ -308,11 +279,6 @@ class Markers3dDataset(Dataset):
                                         np.array([pts_FA[1,0],pts_FA[1,1]]), 
                                         np.array([pts_SD[2,0],pts_SD[2,1]]))
     
-        ## Positionnement de la nuque
-        # pts_FP[0,2], pts_FP[0,1] = projection_circulaire(
-        #                                 np.array([pts_FA[2,2],pts_FA[2,1]]), 
-        #                                 np.array([pts_SD[0,2],pts_SD[0,1]]), 
-        #                                 np.array([pts_FP[0,2],pts_FP[0,1]]))
         # Position verticale uniquement
         pts_FP[0,2] = pts_FA[2,2]
 
@@ -375,51 +341,12 @@ class Markers3dDataset(Dataset):
             (12,13),(13,12)
         ]
 
-
-    def __len__(self):
-        return len(self.features_df)
-    
     def __getitem__(self, idx):
         features = self.features_df.loc[idx]
 
-
-        label_to_index = {
-            5:{
-                'ecto': 0, 
-                'ecto-meso': 1,
-                'meso': 2,
-                'meso-endo': 3,
-                'endo': 4
-            },
-            3:{
-                'ecto': 0, 
-                'meso': 1,
-                'endo': 2
-            }
-        }
-
         self.process_3d_graph(idx)
 
-
-        # Transform gender to boolean values M == True, F == False
-
-        global_features = [features['gender'] == 'M']
-        if self.transform:
-            for i in range(4):
-                global_features.append((features.iloc[i+5] - self.global_features_mean[i]) / self.global_features_std[i])
-        else:
-            for i in range(4):
-                global_features.append(features.iloc[i+5])
-        
-        # Get node features and target labels
-        node_features = torch.tensor(self.nodes, dtype=torch.float)
-        edge_index = torch.tensor(self.edges, dtype=torch.long).t().contiguous()
-        global_features = torch.tensor(global_features, dtype=torch.float)
-        target = torch.tensor(label_to_index[self.n_classes][features["morpho-1"]], dtype=torch.long)
-        
-        # Create the data object
-        data = Data(x=node_features, edge_index=edge_index, y=target)
-        data.global_features = global_features.unsqueeze(0)
+        data = self.construct_data(features, self.nodes, self.edges)
 
         return data
 
