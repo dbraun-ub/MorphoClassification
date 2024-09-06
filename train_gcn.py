@@ -94,10 +94,10 @@ def validation_step(model, criterion, val_loader, device):
             if opt.linear_target:
                 sigmoid = nn.Sigmoid()
                 outputs = sigmoid(outputs).squeeze(1)
-                loss = criterion(outputs, targets / (opt.num_classes - 1))
+                loss = criterion(outputs.softmax(dim=1), targets / (opt.num_classes - 1))
                 predicted = torch.round(outputs * (opt.num_classes - 1))
             else:
-                loss = criterion(outputs, targets)
+                loss = criterion(outputs.softmax(dim=1), targets)
                 _, predicted = torch.max(outputs.data, 1)
 
             val_loss += loss.item()
@@ -124,7 +124,7 @@ def get_loader(opt, folds, markers, global_features_mean=None, global_features_s
     for view in markers_masked.keys():
         markers_masked[view] = markers_masked[view][:,:,mask]
 
-    dataset = datasetClass(markers_masked, df, opt.view, n_classes=opt.num_classes, transform=opt.transform, global_features_mean=global_features_mean, global_features_std=global_features_std)
+    dataset = datasetClass(markers_masked, df, opt.view, n_classes=opt.num_classes, transform=opt.transform, global_features_mean=global_features_mean, global_features_std=global_features_std, weight_index=opt.weight_index)
     loader = DataLoader(dataset, batch_size=opt.batch_size, shuffle=True)
 
     if visualize:
@@ -170,7 +170,7 @@ def train_gcn(opt):
 
         model = shapes.SingleViewGATv2(
             num_node_features=3, # x,y,z
-            num_global_features=5,
+            num_global_features=5, 
             hidden_channels=64,
             num_classes=opt.num_classes
         ).to(device)
@@ -187,9 +187,12 @@ def train_gcn(opt):
         ).to(device)
 
  
-    
-
-    criterion = nn.CrossEntropyLoss()
+    if opt.weighted_loss:
+        weights = 1 / torch.tensor([0.36, 0.3, 0.34])
+        weights /= torch.sum(weights)
+        criterion = nn.CrossEntropyLoss(weights)
+    else:
+        criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=opt.learning_rate)
     scheduler = StepLR(optimizer, step_size=opt.scheduler_step_size, gamma=opt.scheduler_gamma)
 
@@ -218,7 +221,7 @@ def train_gcn(opt):
             data = data.to(device)
             optimizer.zero_grad()
             outputs = model(data)
-            loss = criterion(outputs, data.y)
+            loss = criterion(outputs.softmax(dim=1), data.y)
             _, predicted = torch.max(outputs.data, 1)
             loss.backward()
             optimizer.step()
@@ -303,7 +306,9 @@ def train_gcn(opt):
         opt.num_epochs,
         opt.transform,
         opt.num_classes,
-        'gaus-val-loss'
+        'None',
+        opt.weighted_loss,
+        opt.weight_index
     ]
     with open("runs/training_log.csv", 'a', newline='') as f:
         write = csv.writer(f)
@@ -315,17 +320,19 @@ if __name__ == '__main__':
     opt = options()
 
     param_grid = {
-        'batch_size': [16,32,64,96,128],
+        'batch_size': [32,64,96],
         'learning_rate': [1e-3],
-        'view': [['3d'], ['FA', 'SD', 'FP'], ['FA', 'SD'], ['FA', 'FP'], ['SD', 'FP'], ['SD'], ['FP'], ['FA']],
+        'view': [['3d'], ['FA', 'SD', 'FP'], ['FA', 'SD'], ['SD', 'FP'], ['SD']],
         'scheduler_step_size': [200],
         'num_epochs': [200],
         'transform': [True],
         'num_classes': [3],
         'split': ['full_balanced_3_classes'],
-        'val_folds': [[4],[5],[6],[7]],
+        'val_folds': [[8]],
         'test_folds': [[9]],
-        'train_folds': [[0,1,2,3,5,6,7,8],[0,1,2,3,4,6,7,8],[0,1,2,3,4,5,7,8],[0,1,2,3,4,5,6,8]]
+        'train_folds': [[0,1,2,3,4,5,6,7]],
+        'weighted_loss': [True,False],
+        'weight_index': [True]
     }
 
 
@@ -341,7 +348,13 @@ if __name__ == '__main__':
         opt.earlyStopping_patience = opt.num_epochs // 10
         opt.earlyStopping_min_delta = 1e-8
         opt.drop_rate = 0
-        opt.log_name = f"{opt.model_name}_{'-'.join(opt.view)}_{opt.batch_size}_{opt.learning_rate}_{opt.scheduler_step_size}_{opt.transform}_{opt.num_classes}_{opt.split}_{opt.val_folds[0]}_{opt.test_folds[0]}" 
+        opt.log_name = f"{opt.model_name}_{'-'.join(opt.view)}_{opt.batch_size}_{opt.learning_rate}_{opt.scheduler_step_size}_{opt.transform}_{opt.num_classes}_{opt.split}_{opt.val_folds[0]}_{opt.test_folds[0]}_logits" 
+
+        if opt.weighted_loss:
+            opt.log_name += "_weighted-loss"
+
+        if opt.weight_index:
+            opt.log_name += "_weight_index"
 
         if os.path.exists(os.path.join('runs', opt.log_name)):
             print(f'folder "{opt.log_name}" already exist.')

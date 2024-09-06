@@ -103,7 +103,7 @@ def validation_step(model, criterion, val_loader, device):
                 loss = criterion(outputs, targets / (opt.num_classes - 1))
                 predicted = torch.round(outputs * (opt.num_classes - 1))
             else:
-                loss = criterion(outputs, targets)
+                loss = criterion(outputs.softmax(dim=1), targets)
                 _, predicted = torch.max(outputs.data, 1)
 
             val_loss += loss.item()
@@ -436,8 +436,9 @@ if __name__ == '__main__':
 
             if args.models == "best":                
                 plt.subplot(122)
-                prob = sigmoid(list_outputs[idx])
-                prob /= torch.sum(prob)
+                # prob = sigmoid(list_outputs[idx])
+                # prob /= torch.sum(prob)
+                prob = list_outputs[idx].softmax(dim=0)
                 colors = ['red'] * len(prob)
                 colors[list_targets[idx]] = 'orange'
                 plt.bar(class_labels, prob, color=colors)
@@ -511,9 +512,79 @@ if __name__ == '__main__':
         correct += (target == pred)
     print(correct / len(new_pred))
 
+    sigmoid = nn.Sigmoid()
+    # df_list_outputs = sigmoid(list_outputs)
+    df = pd.DataFrame(sigmoid(list_outputs), columns=['ecto', 'meso', 'endo'])
 
-    # (list_targets == torch.argmax(new_pred)
-# (predicted == targets).sum().item()
+    fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+
+    # Plotting histograms
+    for i, col in enumerate(df.columns):
+        axes[0, i].hist(df[col], bins=20, color='skyblue', edgecolor='black')
+        axes[0, i].set_title(f'Distribution of {col}')
+        axes[0, i].set_xlabel('Value')
+        axes[0, i].set_ylabel('Frequency')
+
+    # Plotting box plots
+    for i, col in enumerate(df.columns):
+        axes[1, i].boxplot(df[col], patch_artist=True)
+        axes[1, i].set_title(f'Box plot of {col}')
+        axes[1, i].set_ylabel('Value')
+
+    # Adding summary statistics to the plot
+    summary_stats = df.describe().loc[['mean', 'std', 'min', '25%', '50%', '75%', 'max']].T
+
+    # Creating a table
+    fig.subplots_adjust(hspace=0.5, top=0.85)
+    table = plt.table(cellText=summary_stats.values, 
+                    rowLabels=summary_stats.index, 
+                    colLabels=summary_stats.columns,
+                    cellLoc='center', 
+                    loc='top',
+                    bbox=[0.2, -0.35, 0.6, 0.25])
+
+    # Formatting the table
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1.2, 1.2)
+
+    # list_outputs /= torch.sum(list_outputs, dim=1, keepdim=True)
+    df = pd.DataFrame(list_outputs.softmax(dim=1), columns=['ecto', 'meso', 'endo'])
+    fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+
+    # Plotting histograms
+    for i, col in enumerate(df.columns):
+        axes[0, i].hist(df[col], bins=20, color='skyblue', edgecolor='black')
+        axes[0, i].set_title(f'Distribution of {col}')
+        axes[0, i].set_xlabel('Value')
+        axes[0, i].set_ylabel('Frequency')
+
+    # Plotting box plots
+    for i, col in enumerate(df.columns):
+        axes[1, i].boxplot(df[col], patch_artist=True)
+        axes[1, i].set_title(f'Box plot of {col}')
+        axes[1, i].set_ylabel('Value')
+
+    # Adding summary statistics to the plot
+    summary_stats = df.describe().loc[['mean', 'std', 'min', '25%', '50%', '75%', 'max']].T
+
+    # Creating a table
+    fig.subplots_adjust(hspace=0.5, top=0.85)
+    table = plt.table(cellText=summary_stats.values, 
+                    rowLabels=summary_stats.index, 
+                    colLabels=summary_stats.columns,
+                    cellLoc='center', 
+                    loc='top',
+                    bbox=[0.2, -0.35, 0.6, 0.25])
+
+    # Formatting the table
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1.2, 1.2)
+
+
+
+
     plt.show()
     
 
